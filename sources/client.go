@@ -21,14 +21,14 @@ func handleConnectionClientSide(conn net.Conn) {
 			return
 		}
 		if response == "exit\n" {
-			fmt.Println("EXITT ASKED")
+			fmt.Println("EXIT ASKED")
 			return
 		}
 
 		fmt.Printf("Server response: '%s'", response)
 		fmt.Printf("Start simulating calculus\n")
-		calculus := simulateClientCalculus(response)
-		fmt.Printf("End simulating calculus\n'a': %i\n", calculus)
+		calculus := simulateClientCalculus(response, 'e')
+		fmt.Printf("End simulating calculus\n'e': %i\n", calculus)
 		conn.Write([]byte(fmt.Sprintf("%d\n", calculus)))
 
 	}
@@ -37,10 +37,10 @@ func handleConnectionClientSide(conn net.Conn) {
 
 // simulate client calculus
 // Take a word and returns occurrences of 'a'
-func simulateClientCalculus(word string) int {
+func simulateClientCalculus(word string, letterToCount rune) int {
 	res := 0
 	for _, letter := range word {
-		if letter == 'a' {
+		if letter == letterToCount {
 			res++
 		}
 	}
