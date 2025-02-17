@@ -21,16 +21,27 @@ func openConnection(port string, handleFct func(conn net.Conn)) {
 	defer ln.Close()
 
 	fmt.Println("Server waiting for connections")
-
-	for {
+	// DATASET FOR CLIENT
+	clientNumber := 3
+	marmots := make([]Marmot, clientNumber)
+	dataset := generateRandomArray(clientNumber, 100000000)
+	for i := 0; i < 3; i++ {
 		conn, err := ln.Accept()
 		if err != nil {
 			fmt.Println("ERROR accepting connection: ", err)
 			continue
 		}
+		marmots[i] = Marmot{conn, make(chan bool), make(chan bool), dataset[i], ""}
+		go marmots[i].handleMarmot()
+		// go handleFct(conn)
+	}
 
-		go handleFct(conn)
-
+	// All clients are connected we can start calculations
+	for _, marmot := range marmots {
+		marmot.start <- true
+	}
+	for _, marmot := range marmots {
+		<-marmot.end
 	}
 }
 
@@ -51,9 +62,10 @@ func handleConnection(conn net.Conn) {
 
 	fmt.Printf("Message received: %s", message)
 
-	// send response to clienta
-	response := "Message received by server\n"
+	// send response to client
+	response := "1eMessage received by server\n"
 	_, _ = conn.Write([]byte(response))
+
 	// DELETE ---
 	// read client message
 	message, err = bufio.NewReader(conn).ReadString('\n')
@@ -61,15 +73,11 @@ func handleConnection(conn net.Conn) {
 		fmt.Println("ERROR reading client message", err)
 		return
 	}
-
 	fmt.Printf("Message received by client: %s", message)
+
 	// End connection by sending 'exit'
 	fmt.Printf("Connection closed\n")
 	response = "exit\n"
 	_, _ = conn.Write([]byte(response))
 
-}
-
-func main() {
-	openConnection(ServerPort, handleConnection)
 }

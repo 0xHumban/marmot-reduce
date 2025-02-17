@@ -7,29 +7,39 @@ import (
 	"os"
 )
 
-const ServerIP = "127.0.0.1:8080"
+const ServerIP = "10.192.4.206:8080"
+const LocalServerIP = "127.0.0.1:8080"
 
 // handle connection client side
 // client waiting for server instructions
+// 'exit': connection closed
+// '1': count 'e' in response
 func handleConnectionClientSide(conn net.Conn) {
 	defer conn.Close()
 	response := ""
-	for response != "exit\n" {
+	for response != "exit" {
 		response, err := bufio.NewReader(conn).ReadString('\n')
+		response = response[:len(response)-1]
 		if err != nil {
 			fmt.Println("ERROR reading server response", err)
 			return
 		}
-		if response == "exit\n" {
+
+		fmt.Printf("Server response: '%s'\n", response)
+		if response == "exit" {
 			fmt.Println("EXIT ASKED")
 			return
 		}
 
-		fmt.Printf("Server response: '%s'", response)
-		fmt.Printf("Start simulating calculus\n")
-		calculus := simulateClientCalculus(response, 'e')
-		fmt.Printf("End simulating calculus\n'e': %i\n", calculus)
-		conn.Write([]byte(fmt.Sprintf("%d\n", calculus)))
+		// count 'e' in response
+		if response[0] == '1' {
+			fmt.Printf("Start simulating calculus\n")
+			letterToCount := response[1]
+			calculus := fmt.Sprintf("%d", simulateClientCalculus(response[1:], rune(letterToCount)))
+			fmt.Printf("End simulating calculus -- Result'e': %s\n", calculus)
+			conn.Write([]byte(fmt.Sprintf("%s\n", calculus)))
+
+		}
 
 	}
 
@@ -73,8 +83,4 @@ func connectToServer(ip string) {
 
 	// for {
 	// }
-}
-
-func main() {
-	connectToServer(ServerIP)
 }
