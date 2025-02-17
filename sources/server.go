@@ -62,7 +62,11 @@ func handleConnection(conn net.Conn) {
 		return
 	}
 
-	fmt.Printf("Message received: %s", message)
+	fmt.Printf("Message received by client: %s", message)
+	fmt.Printf("Connection closed\n")
+	response = "exit\n"
+	_, _ = conn.Write([]byte(response))
+
 }
 
 func main() {

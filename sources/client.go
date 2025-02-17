@@ -14,17 +14,21 @@ const ServerIP = "127.0.0.1:8080"
 func handleConnectionClientSide(conn net.Conn) {
 	defer conn.Close()
 	response := ""
-	for response != "exit" {
+	for response != "exit\n" {
 		response, err := bufio.NewReader(conn).ReadString('\n')
 		if err != nil {
 			fmt.Println("ERROR reading server response", err)
+			return
+		}
+		if response == "exit\n" {
+			fmt.Println("EXITT ASKED")
 			return
 		}
 
 		fmt.Printf("Server response: '%s'", response)
 		fmt.Printf("Start simulating calculus\n")
 		calculus := simulateClientCalculus(response)
-		fmt.Printf("End simulating calculus\n'a': %i", calculus)
+		fmt.Printf("End simulating calculus\n'a': %i\n", calculus)
 		conn.Write([]byte(fmt.Sprintf("%d\n", calculus)))
 
 	}
@@ -35,7 +39,7 @@ func handleConnectionClientSide(conn net.Conn) {
 // Take a word and returns occurrences of 'a'
 func simulateClientCalculus(word string) int {
 	res := 0
-	for letter := range word {
+	for _, letter := range word {
 		if letter == 'a' {
 			res++
 		}
