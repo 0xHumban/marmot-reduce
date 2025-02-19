@@ -31,18 +31,28 @@ func handleConnectionClientSide(conn net.Conn) {
 			return
 		}
 
-		// count 'e' in response
-		if response[0] == '1' {
-			fmt.Printf("Start simulating calculus\n")
-			letterToCount := response[1]
-			calculus := fmt.Sprintf("%d", simulateClientCalculus(response[1:], rune(letterToCount)))
-			fmt.Printf("End simulating calculus -- Result'e': %s\n", calculus)
-			conn.Write([]byte(fmt.Sprintf("%s\n", calculus)))
-
-		}
+		treatServerResponse(conn, response)
 
 	}
+}
 
+// treats the server response
+// choose whats the next step, which function the client have to execute
+func treatServerResponse(conn net.Conn, response string) {
+	// Ping request
+	if response[0] == '0' {
+		_, _ = conn.Write([]byte("pong"))
+
+	} else if
+	// count 'e' in response
+	response[0] == '1' {
+		fmt.Printf("Start simulating calculus\n")
+		letterToCount := response[1]
+		calculus := fmt.Sprintf("%d", simulateClientCalculus(response[1:], rune(letterToCount)))
+		fmt.Printf("End simulating calculus -- Result'e': %s\n", calculus)
+		_, _ = conn.Write([]byte(fmt.Sprintf("%s\n", calculus)))
+
+	}
 }
 
 // simulate client calculus
@@ -69,7 +79,7 @@ func connectToServer(ip string) {
 
 	message := fmt.Sprintf("The client address is:@%s\n", conn.LocalAddr().String())
 
-	conn.Write([]byte(message))
+	_, _ = conn.Write([]byte(message))
 
 	handleConnectionClientSide(conn)
 
