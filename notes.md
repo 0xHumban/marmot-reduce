@@ -1,18 +1,36 @@
 ## Notes related to this project
 
 ## Step 1: intermachine communication
+### Goal
 The goal is to make simple script to communicate from a machine A to a remote machine B, client-server principle.
 
 I successfuly simulate connexion between clients and a server, with simple handling function server side.
 
 Now I will try to handle server response.
 The goal is to simulate little calculus client side and return the result to server.
-The server want to make his clients count occurrence of 'a' in a word.
+The server want to make his clients count occurrence of 'e' in a word.
 
 Steps:
   - server started waiting for connections
   - client connect to server
   - client is waiting for server response
   - server send a response (a word)
-  - client, by using a little function will return the number of 'a' in the word
+  - client, by using a little function will return the number of 'e' in the word
 
+### Code Implementation
+
+What has been made:
+  - server can wait for a number of connections
+  - after some client connections, server send batch of random letters
+  - clients count 'e' occurrences and return the result to main server
+
+
+I also started a multifunction execution client. For example, to count 'e' occurrences, the server sends `1eMyWordToCountE`.
+`1` stand for executing the function to count occurrences and the following letter 'e', the letter to count.
+
+
+### Results
+For initial tests I launched clients in other terminals and one for the central server.
+After it works well, I configured 2 old laptop with ubuntu server and lubuntu to test the intermachine communication. All machines were connected in a local subnet.
+
+In first I was sending a lot of letters (100000000), it took longer to send over the network than to process the data.

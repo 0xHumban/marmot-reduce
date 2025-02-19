@@ -7,7 +7,7 @@ import (
 	"os"
 )
 
-const ServerIP = "10.192.4.206:8080"
+const ServerIP = "192.168.223.130:8080"
 const LocalServerIP = "127.0.0.1:8080"
 
 // handle connection client side
@@ -25,7 +25,7 @@ func handleConnectionClientSide(conn net.Conn) {
 			return
 		}
 
-		fmt.Printf("Server response: '%s'\n", response)
+		// fmt.Printf("Server response: '%s'\n", response)
 		if response == "exit" {
 			fmt.Println("EXIT ASKED")
 			return
@@ -73,14 +73,4 @@ func connectToServer(ip string) {
 
 	handleConnectionClientSide(conn)
 
-	// response, err := bufio.NewReader(conn).ReadString('\n')
-	// if err != nil {
-	// 	fmt.Println("ERROR reading server response", err)
-	// 	return
-	// }
-
-	// fmt.Printf("Server response: %s", response)
-
-	// for {
-	// }
 }

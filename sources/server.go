@@ -24,7 +24,7 @@ func openConnection(port string, handleFct func(conn net.Conn)) {
 	// DATASET FOR CLIENT
 	clientNumber := 3
 	marmots := make([]Marmot, clientNumber)
-	dataset := generateRandomArray(clientNumber, 100000000)
+	dataset := generateRandomArray(clientNumber, 1000000)
 	for i := 0; i < 3; i++ {
 		conn, err := ln.Accept()
 		if err != nil {
