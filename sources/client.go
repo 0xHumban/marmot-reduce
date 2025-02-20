@@ -7,8 +7,8 @@ import (
 	"os"
 )
 
-const ServerIP = "192.168.223.130:8080"
-const LocalServerIP = "127.0.0.1:8080"
+const LocalServerIP = "192.168.223.130:8080"
+const ServerIP = "127.0.0.1:8080"
 
 // handle connection client side
 // client waiting for server instructions
@@ -25,7 +25,7 @@ func handleConnectionClientSide(conn net.Conn) {
 			return
 		}
 
-		// fmt.Printf("Server response: '%s'\n", response)
+		fmt.Printf("Server response: '%s'\n", response)
 		if response == "exit" {
 			fmt.Println("EXIT ASKED")
 			return
@@ -41,15 +41,17 @@ func handleConnectionClientSide(conn net.Conn) {
 func treatServerResponse(conn net.Conn, response string) {
 	// Ping request
 	if response[0] == '0' {
-		_, _ = conn.Write([]byte("pong"))
+		printDebug("Ping pong request received")
+		message := fmt.Sprintf("'Pong' from @%s\n", conn.LocalAddr().String())
+		_, _ = conn.Write([]byte(message))
 
 	} else if
 	// count 'e' in response
 	response[0] == '1' {
-		fmt.Printf("Start simulating calculus\n")
+		printDebug("Start simulating calculus\n")
 		letterToCount := response[1]
 		calculus := fmt.Sprintf("%d", simulateClientCalculus(response[1:], rune(letterToCount)))
-		fmt.Printf("End simulating calculus -- Result'e': %s\n", calculus)
+		printDebug(fmt.Sprintf("End simulating calculus -- Result'e': %s\n", calculus))
 		_, _ = conn.Write([]byte(fmt.Sprintf("%s\n", calculus)))
 
 	}
@@ -74,12 +76,8 @@ func connectToServer(ip string) {
 		os.Exit(1)
 	}
 	// DEBUG
-	fmt.Println("Local address: ", conn.LocalAddr())
-	fmt.Println("Remote address: ", conn.RemoteAddr())
-
-	message := fmt.Sprintf("The client address is:@%s\n", conn.LocalAddr().String())
-
-	_, _ = conn.Write([]byte(message))
+	printDebug("Local address: " + conn.LocalAddr().String())
+	printDebug("Remote address: s" + conn.RemoteAddr().String())
 
 	handleConnectionClientSide(conn)
 

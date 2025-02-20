@@ -49,6 +49,40 @@ So the idea is to use a structure in this style:
 ### Ping
 Implement a function responding "pong" or another message, the goal is just to check if the client is always alive (connected).
 
+### Change the way to wait goroutines
+```go
+func (ms Marmots) performAction(fctToExecute func(*Marmot)) {
+	for _, m := range ms {
+		go fctToExecute(m)
+	}
+	// All clients are connected we can start calculations
+	for _, marmot := range ms {
+		marmot.start <- true
+	}
+	for _, marmot := range ms {
+		<-marmot.end
+	}
+
+}
+
+
+func (m *Marmot) Ping() {
+	<-m.start
+	// send 'ping' to client
+	m.data = "0Ping\n"
+	m.writeData()
+	m.readResponse()
+	m.end <- true
+}
+
+```
+
+Here when we send a ping to the client I'm starting new goroutine, currently the way to wait the end of the goroutine, is by using a channel `end`. 
+
+But if the go routine crash / take too many time, the performAction function will never end.
+
+> Solution: by using `sync.WaitGroup`
+
 
 ## Step 3: Retry connection
 The goal is to make a little loop for client, to always try to connect to the server if it's not, every minute for example.
