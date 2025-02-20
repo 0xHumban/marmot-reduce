@@ -82,6 +82,16 @@ func (ms Marmots) Pings() {
 	}
 }
 
+// show current clients connected
+func (ms Marmots) ShowConnected() {
+	fmt.Println("\nCurrent clients connected:")
+	for i, m := range ms {
+		if m != nil {
+			fmt.Printf("%d. @%s\n", (i + 1), m.conn.RemoteAddr())
+		}
+	}
+}
+
 func (m *Marmot) Ping() {
 	// wait for start / timeout
 	<-m.start

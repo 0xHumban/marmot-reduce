@@ -31,11 +31,11 @@ func generateRandomString(length int) string {
 }
 
 func printDebug(text string) {
-	fmt.Println(YellowColor + "\nDEBUG: " + text + ResetColor)
+	fmt.Println(YellowColor + "DEBUG: " + text + ResetColor)
 }
 
 func printError(text string) {
-	fmt.Println(RedColor + "\nERROR: " + text + ResetColor)
+	fmt.Println(RedColor + "ERROR: " + text + ResetColor)
 }
 
 func showMenu() {
@@ -56,7 +56,7 @@ func handleMenu(marmots Marmots) {
 
 		switch choice {
 		case "1":
-			fmt.Println("TODO")
+			marmots.ShowConnected()
 		case "2":
 			marmots.Pings()
 		case "3":
