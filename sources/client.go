@@ -27,7 +27,7 @@ func handleConnectionClientSide(conn net.Conn) {
 
 		fmt.Printf("Server response: '%s'\n", response)
 		if response == "exit" {
-			fmt.Println("EXIT ASKED")
+			printDebug("EXIT request received")
 			return
 		}
 

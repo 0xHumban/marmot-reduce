@@ -92,6 +92,28 @@ func (ms Marmots) ShowConnected() {
 	}
 }
 
+// close all current conncections with clients
+func (ms Marmots) CloseConnections() {
+	for i, m := range ms {
+		if m != nil {
+			m.Close()
+			ms[i] = nil
+			printDebug("@" + m.conn.RemoteAddr().String() + " has been closed and removed of the client list")
+		}
+	}
+
+}
+
+// close the connection with the client
+// it sends 'exit' for properly closed
+func (m *Marmot) Close() {
+	defer m.conn.Close()
+	m.data = "exit\n"
+	if !m.writeData() {
+		printDebug("error sending 'exit'")
+	}
+}
+
 func (m *Marmot) Ping() {
 	// wait for start / timeout
 	<-m.start

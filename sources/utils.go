@@ -60,7 +60,7 @@ func handleMenu(marmots Marmots) {
 		case "2":
 			marmots.Pings()
 		case "3":
-			fmt.Println("TODO")
+			marmots.CloseConnections()
 		default:
 			printError("Invalid option, please try again.")
 		}
