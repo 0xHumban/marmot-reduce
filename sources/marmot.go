@@ -24,7 +24,7 @@ type Marmot struct {
 func NewMarmot(connA net.Conn) *Marmot {
 	return &Marmot{
 		conn:     connA,
-		start:    make(chan bool),
+		start:    make(chan bool, 1),
 		end:      make(chan bool, 1),
 		data:     "",
 		response: "",
@@ -38,10 +38,6 @@ type MarmotI interface {
 	// send a ping to the client to see if the connection is always up
 	Ping() (bool, error)
 }
-
-// func (m Marmot) Ping() (bool, error) {
-
-// }
 
 func (ms Marmots) performAction(fctToExecute func(*Marmot)) {
 	// wait group to await goroutine
@@ -82,8 +78,38 @@ func (ms Marmots) Pings() {
 	}
 }
 
+// returns the number of clients connected
+func (ms Marmots) clientsLen() int {
+	res := 0
+	for i := range len(ms) {
+		if ms[i] != nil {
+			res++
+		}
+	}
+	return res
+}
+
+// sends batch of letters, and asked to clients to count occurence of a letter
+func (ms Marmots) CountingLetters(letter rune, batchSize int) {
+	// Send ping to check if clients always connected
+	ms.Pings()
+
+	clientsNumber := ms.clientsLen()
+	dataset := generateRandomArray(clientsNumber, batchSize)
+	i := 0
+	for _, m := range ms {
+		if m != nil {
+			m.data = fmt.Sprintf("%d%c%s\n", 1, letter, dataset[i])
+			i++
+		}
+	}
+	ms.performAction((*Marmot).CountLetter)
+
+}
+
 // show current clients connected
 func (ms Marmots) ShowConnected() {
+	ms.Pings()
 	fmt.Println("\nCurrent clients connected:")
 	for i, m := range ms {
 		if m != nil {
@@ -109,9 +135,30 @@ func (ms Marmots) CloseConnections() {
 func (m *Marmot) Close() {
 	defer m.conn.Close()
 	m.data = "exit\n"
-	if !m.writeData() {
+	if !m.writeData(true) {
 		printDebug("error sending 'exit'")
 	}
+}
+
+func (m *Marmot) CountLetter() {
+	// wait for start / timeout
+	<-m.start
+	// sending data
+	res := m.writeData(false)
+	if res {
+		res = m.readResponse()
+	} else {
+		printDebug("error sending 'Ping/Pong'")
+		m.end <- false
+		return
+	}
+	if !res {
+		printDebug("error receiving 'Ping/Pong'")
+		m.end <- false
+		return
+	}
+	m.end <- true
+
 }
 
 func (m *Marmot) Ping() {
@@ -119,7 +166,7 @@ func (m *Marmot) Ping() {
 	<-m.start
 	// send 'ping' to client
 	m.data = "0Ping\n"
-	res := m.writeData()
+	res := m.writeData(false)
 	if res {
 		res = m.readResponse()
 	} else {
@@ -154,7 +201,7 @@ func (m *Marmot) readResponse() bool {
 
 // write the Data store in Marmot to the client
 // print in DEBUG mode
-func (m *Marmot) writeData() bool {
+func (m *Marmot) writeData(show bool) bool {
 
 	// message, err := bufio.NewReader(m.conn).ReadString('\n')
 	_, err := m.conn.Write([]byte(m.data))
@@ -162,6 +209,6 @@ func (m *Marmot) writeData() bool {
 		printError(fmt.Sprintf("Sending message to client '(@"+m.conn.RemoteAddr().String()+" %s'", err))
 		return false
 	}
-	printDebug("Message sent: '" + m.data + "'")
+	printDebugCondition("Message sent: '"+m.data+"'", show)
 	return true
 }

@@ -27,7 +27,7 @@ func handleConnectionClientSide(conn net.Conn) bool {
 		}
 		response = response[:len(response)-1]
 
-		fmt.Printf("Server response: '%s'\n", response)
+		// fmt.Printf("Server response: '%s'\n", response)
 		if response == "exit" {
 			printDebug("EXIT request received")
 			return true
@@ -82,7 +82,7 @@ func connectToServer(ip string) {
 		} else {
 			// DEBUG
 			printDebug("Local address: " + conn.LocalAddr().String())
-			printDebug("Remote address: s" + conn.RemoteAddr().String())
+			printDebug("Remote address: " + conn.RemoteAddr().String())
 
 			connectionClosedProperly = handleConnectionClientSide(conn)
 		}

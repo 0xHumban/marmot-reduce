@@ -88,5 +88,13 @@ But if the go routine crash / take too many time, the performAction function wil
 The goal is to make a little loop for client, to always try to connect to the server if it's not, every minute for example.
 Also catch potential network issue with the retry connection system
 
-## Implementation
+### Implementation
 The client try to connect to server and handle the connection, as long as the server does not send exit request.
+
+## Step 4: Create calculation menu
+Just created basic menu to perform some calculations to clients.
+### Counting letter occurences 
+User can select a letter and it will send to clients batch of random letters and count occurrence of the letter.
+
+
+

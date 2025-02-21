@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"math/rand"
 	"os"
 	"strings"
 )
@@ -12,22 +11,10 @@ const RedColor = "\033[31m"
 const YellowColor = "\033[33m"
 const ResetColor = "\033[0m"
 
-func generateRandomArray(arraylength, stringLength int) []string {
-	res := make([]string, arraylength)
-	for i := range res {
-		res[i] = generateRandomString(stringLength)
+func printDebugCondition(text string, show bool) {
+	if show {
+		printDebug(text)
 	}
-
-	return res
-}
-
-func generateRandomString(length int) string {
-	letters := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-	result := make([]byte, length)
-	for i := range result {
-		result[i] = letters[rand.Intn(len(letters))]
-	}
-	return string(result)
 }
 
 func printDebug(text string) {
@@ -43,7 +30,8 @@ func showMenu() {
 	fmt.Println("1. Show connected marmot")
 	fmt.Println("2. Send ping to clients")
 	fmt.Println("3. Close connections")
-	fmt.Println("4. Exit")
+	fmt.Println("4. Execute calculations")
+	fmt.Println("5. Exit (will let clients trying to reconnect to server)")
 	fmt.Print("Choose an option:\n")
 }
 
@@ -63,10 +51,39 @@ func handleMenu(marmots Marmots) {
 		case "3":
 			marmots.CloseConnections()
 		case "4":
-			marmots.CloseConnections()
+			handleCalculationMenu(marmots)
+		case "5":
 			return
 		default:
 			printError("Invalid option, please try again.")
 		}
 	}
+}
+
+func showCalculationMenu() {
+	fmt.Println("\n===== Calculation Menu ===== ")
+	fmt.Println("1. Counting letter")
+	fmt.Println("2. Back")
+	fmt.Print("Choose an option:\n")
+
+}
+
+func handleCalculationMenu(marmots Marmots) {
+	scanner := bufio.NewScanner(os.Stdin)
+
+	for {
+		showCalculationMenu()
+		scanner.Scan()
+		choice := strings.TrimSpace(scanner.Text())
+
+		switch choice {
+		case "1":
+			handleCountingLetterMenu(marmots)
+		case "2":
+			return
+		default:
+			printError("Invalid option, please try again.")
+		}
+	}
+
 }

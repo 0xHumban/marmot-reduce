@@ -6,7 +6,7 @@ import (
 )
 
 const ServerPort = ":8080"
-const ClientNumber = 3
+const ClientNumber = 10
 
 // open a port to allow client to connect
 // In:
@@ -24,7 +24,7 @@ func openConnection(port string, marmots Marmots) {
 	// DATASET FOR CLIENT
 	// marmots := make([]Marmot, clientNumber)
 	// dataset := generateRandomArray(ClientNumber, 1000000)
-	for i := 0; i < ClientNumber; i++ {
+	for marmots.clientsLen() < ClientNumber {
 		conn, err := ln.Accept()
 		if err != nil {
 			fmt.Println("ERROR accepting connection: ", err)
@@ -32,7 +32,14 @@ func openConnection(port string, marmots Marmots) {
 		} else {
 			printDebug("New client connected: @" + conn.RemoteAddr().String())
 		}
-		marmots[i] = NewMarmot(conn)
+		// search next marmot index to insert
+		for i := 0; i < ClientNumber; i++ {
+			if marmots[i] == nil {
+				marmots[i] = NewMarmot(conn)
+				break
+			}
+		}
+
 	}
 
 }
