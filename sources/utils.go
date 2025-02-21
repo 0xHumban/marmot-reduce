@@ -43,6 +43,7 @@ func showMenu() {
 	fmt.Println("1. Show connected marmot")
 	fmt.Println("2. Send ping to clients")
 	fmt.Println("3. Close connections")
+	fmt.Println("4. Exit")
 	fmt.Print("Choose an option:\n")
 }
 
@@ -61,6 +62,9 @@ func handleMenu(marmots Marmots) {
 			marmots.Pings()
 		case "3":
 			marmots.CloseConnections()
+		case "4":
+			marmots.CloseConnections()
+			return
 		default:
 			printError("Invalid option, please try again.")
 		}
