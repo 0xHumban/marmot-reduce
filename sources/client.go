@@ -4,36 +4,39 @@ import (
 	"bufio"
 	"fmt"
 	"net"
-	"os"
+	"time"
 )
 
 const LocalServerIP = "192.168.223.130:8080"
 const ServerIP = "127.0.0.1:8080"
+const RetryDelais = 5
 
 // handle connection client side
 // client waiting for server instructions
 // 'exit': connection closed
 // '1': count 'e' in response
-func handleConnectionClientSide(conn net.Conn) {
+// returns if the connection has been asked by server
+func handleConnectionClientSide(conn net.Conn) bool {
 	defer conn.Close()
 	response := ""
 	for response != "exit" {
 		response, err := bufio.NewReader(conn).ReadString('\n')
-		response = response[:len(response)-1]
 		if err != nil {
 			fmt.Println("ERROR reading server response", err)
-			return
+			return false
 		}
+		response = response[:len(response)-1]
 
 		fmt.Printf("Server response: '%s'\n", response)
 		if response == "exit" {
 			printDebug("EXIT request received")
-			return
+			return true
 		}
 
 		treatServerResponse(conn, response)
 
 	}
+	return true
 }
 
 // treats the server response
@@ -70,15 +73,21 @@ func simulateClientCalculus(word string, letterToCount rune) int {
 }
 
 func connectToServer(ip string) {
-	conn, err := net.Dial("tcp", ip)
-	if err != nil {
-		fmt.Println("ERROR connecting to server", err)
-		os.Exit(1)
+	connectionClosedProperly := false
+
+	for !connectionClosedProperly {
+		conn, err := net.Dial("tcp", ip)
+		if err != nil {
+			fmt.Println("ERROR connecting to server", err)
+		} else {
+			// DEBUG
+			printDebug("Local address: " + conn.LocalAddr().String())
+			printDebug("Remote address: s" + conn.RemoteAddr().String())
+
+			connectionClosedProperly = handleConnectionClientSide(conn)
+		}
+		if !connectionClosedProperly {
+			time.Sleep(RetryDelais * time.Second)
+		}
 	}
-	// DEBUG
-	printDebug("Local address: " + conn.LocalAddr().String())
-	printDebug("Remote address: s" + conn.RemoteAddr().String())
-
-	handleConnectionClientSide(conn)
-
 }

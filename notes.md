@@ -88,3 +88,5 @@ But if the go routine crash / take too many time, the performAction function wil
 The goal is to make a little loop for client, to always try to connect to the server if it's not, every minute for example.
 Also catch potential network issue with the retry connection system
 
+## Implementation
+The client try to connect to server and handle the connection, as long as the server does not send exit request.
