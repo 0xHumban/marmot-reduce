@@ -201,3 +201,20 @@ To achieve this, we will distribute in equal range the chunk to compute.
 
 ### Mesage format
 The message sent by server will be: `3N` where `3` is the function id and `N` is the number of random point to calculate.
+
+### Observation
+Tests has been run on my homemade lab.
+Each "remotes/locals clients" is running on a single laptop.
+
+For the samples amount: `1000000000`
+With total of 3 clients (3 locals): `13.54 seconds`
+With total of 4 clients (3 locals + 4 remotes ): `8.54 seconds`
+With total of 6 clients (3 locals + 4 remotes + 2 remotes): `7.29 seconds`
+With total of 10 clients (3 locals + 4 remotes + 2 remotes + 4 remotes): `5 seconds`
+
+
+For the samples amount: `10000000000`
+With total of 3 clients (3 locals): `83 seconds`
+With total of 4 clients (3 locals + 4 remotes ): `38.78 seconds`
+With total of 10 clients (3 locals + 4 remotes + 2 remotes + 4 remotes): `49.59 seconds`
+

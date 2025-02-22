@@ -190,8 +190,8 @@ func (ms Marmots) PiCalculation(numSamples int) float64 {
 		}
 	}
 	pi := float64(insideTotal) / float64(numSamples) * 4
-	fmt.Printf("The PI estimation is: ~%f\n", pi)
 	printDebug("End PI calculation")
+	printDebug(fmt.Sprintf("The PI estimation is: ~%.20f , with %d clients, a total sample of %d\n", pi, clientsNumber, numSamples))
 	return pi
 }
 

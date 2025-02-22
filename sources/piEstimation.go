@@ -6,6 +6,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func handlePiEstimationMenu(marmots Marmots) {
@@ -28,7 +29,14 @@ func handlePiEstimationMenu(marmots Marmots) {
 			if err != nil {
 				printError("Invalid option, please try again.")
 			} else {
-				marmots.PiCalculation(number)
+				startTime := time.Now()
+				piEstimate := marmots.PiCalculation(number)
+				endTime := time.Now()
+				// Calculate the duration
+				duration := endTime.Sub(startTime)
+
+				fmt.Printf("Estimation of Pi: %.20f\n", piEstimate)
+				fmt.Printf("Time taken: %v\n", duration)
 
 				return
 			}
