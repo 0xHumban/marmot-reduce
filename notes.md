@@ -103,12 +103,37 @@ A given number is a natural number greater than 1 that is not a product of two s
 So with this we can imagine a scenario:
 - we have 3 clients connected
 - we want to know if the number 90000 is prime
-- sqrt(90000) is 300
-- we will create 3 range from 0 to 300 [(0,100), (100,200), (200,300)]
+- sqrt(90000) = 300
+- we will create 3 range from 0 to 300 [(2,100), (100,200), (200,300)]
 - each client will check is the number is not a product of a number in the range
 - if client do not found product number, returns -1 else the number
 - foreach client, server checks if no product number found
 
+
+### Message format
+For the second client, with the range of [100,200] it will receive: 
+`290000@100@200`
+`2` is the id for client to know which function to execute
+We're using `@` as separator because it should never be used by server (in this context)
+
+You can test it with this numbers: 
+```
+499139582359084529
+943349775459380173
+440149999829818483
+761795777243436499
+403111596387917561
+811508878081456537
+341705128992983771
+178225203054306761
+446379149495008381
+283762230407893121
+880354649778912289
+```
+
+
+### Stop client calculation if product number found
+if a client found a product number, should be good idea to send signals to other clients to stop their calculations.
 
 #### Potential issue
 Currently we have fault tolerance (network distrub) if a client disconnected during the option menu.
