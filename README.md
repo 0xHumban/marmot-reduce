@@ -16,6 +16,7 @@ Marmot-Reduce is a simplified distributed system inspired by the MapReduce progr
 - **Distributed execution of calculations**:
   - Letter counting in a text.
   - Checking if a number is prime.
+  - PI estimation using Monte Carlo algorithm
 
 ###  Client
 
