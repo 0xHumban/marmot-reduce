@@ -193,3 +193,11 @@ Idea: create a function asking for some computing power and each client returns 
 ## TODO: Issue if new client connect during calculation
 The Wait() methods used to wait all <-m.end waits infinite time if a new client is connecting.
 -> maybe add attribut like "isWorking" to check if we need to wait this client or not
+
+## PI estimation
+The goal is to have an estimation of PI.
+We will use the MonteCarlo method.
+To achieve this, we will distribute in equal range the chunk to compute.
+
+### Mesage format
+The message sent by server will be: `3N` where `3` is the function id and `N` is the number of random point to calculate.

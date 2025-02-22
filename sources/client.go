@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"math/rand"
 	"net"
 	"strconv"
 	"strings"
@@ -85,6 +86,20 @@ func treatServerResponse(conn net.Conn, response string) {
 		printDebug(fmt.Sprintf("End prime number calculation -- Result: %s\n", calculus))
 		_, _ = conn.Write([]byte(fmt.Sprintf("%s\n", calculus)))
 
+	} else if
+	// calculate pi estiumation
+	response[0] == '3' {
+		printDebug("Start pi estimation\n")
+		samples, err := strconv.Atoi(response[1:])
+		if err != nil {
+			printError("during conversion")
+			_, _ = conn.Write([]byte(fmt.Sprintf("%s\n", "Conversion error")))
+			return
+		}
+		calculus := fmt.Sprintf("%d", calculePiChunk(samples))
+		printDebug(fmt.Sprintf("End pi estimation -- Result: %s\n", calculus))
+		_, _ = conn.Write([]byte(fmt.Sprintf("%s\n", calculus)))
+
 	}
 }
 
@@ -116,6 +131,21 @@ func calculatePrimeNumber(potentialPrime, start, end int) int {
 	}
 
 	return res
+}
+
+// calculate PI chunk
+// returns of points those that fall inside the quarter circle
+// IN: n: the number of points to generate
+func calculePiChunk(n int) int {
+	inside := 0
+	for i := 0; i < n; i++ {
+		x, y := rand.Float64(), rand.Float64()
+		if x*x+y*y <= 1 {
+			inside++
+		}
+	}
+
+	return inside
 }
 
 func connectToServer(ip string) {

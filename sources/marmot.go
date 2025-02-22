@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"net"
+	"strconv"
 	"sync"
 )
 
@@ -158,6 +159,42 @@ func (ms Marmots) PrimeNumberCalculation(potentialPrime int) {
 	printDebug("End prime number calculation")
 }
 
+// Create a range from 0 to given number
+// Divide this range by clients number
+// send range and wait for result and calculate a pi estimation
+func (ms Marmots) PiCalculation(numSamples int) float64 {
+	printDebug("Start PI calculation")
+	// Send ping to check if clients always connected
+	ms.Pings()
+	clientsNumber := ms.clientsLen()
+	if clientsNumber == 0 {
+		printError("No client connected, retry after connecting clients")
+		return -1
+	}
+	samplesPerWorker := numSamples / clientsNumber
+	for _, m := range ms {
+		if m != nil {
+			m.data = fmt.Sprintf("%d%d\n", 3, samplesPerWorker)
+		}
+	}
+	ms.performAction((*Marmot).PiCalculation)
+	insideTotal := 0
+	for _, m := range ms {
+		if m != nil && <-m.end {
+			numberinside, err := strconv.Atoi(m.response)
+			if err != nil {
+				printError("during response conversion to number")
+			} else {
+				insideTotal += numberinside
+			}
+		}
+	}
+	pi := float64(insideTotal) / float64(numSamples) * 4
+	fmt.Printf("The PI estimation is: ~%f\n", pi)
+	printDebug("End PI calculation")
+	return pi
+}
+
 // show current clients connected
 func (ms Marmots) ShowConnected() {
 	ms.Pings()
@@ -219,6 +256,27 @@ func (m *Marmot) PrimeNumber() {
 	}
 	if !res {
 		printDebug("error receiving 'Prime number calculation result'")
+		m.end <- false
+		return
+	}
+	m.end <- true
+
+}
+
+func (m *Marmot) PiCalculation() {
+	// wait for start / timeout
+	<-m.start
+	// sending data
+	res := m.writeData(true)
+	if res {
+		res = m.readResponse()
+	} else {
+		printDebug("error sending 'Pi calculation'")
+		m.end <- false
+		return
+	}
+	if !res {
+		printDebug("error receiving 'Pi result'")
 		m.end <- false
 		return
 	}
