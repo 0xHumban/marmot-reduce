@@ -4,6 +4,8 @@ import (
 	"bufio"
 	"fmt"
 	"net"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -51,24 +53,67 @@ func treatServerResponse(conn net.Conn, response string) {
 	} else if
 	// count 'e' in response
 	response[0] == '1' {
-		printDebug("Start simulating calculus\n")
+		printDebug("Start counting letter occurrences\n")
 		letterToCount := response[1]
-		calculus := fmt.Sprintf("%d", simulateClientCalculus(response[1:], rune(letterToCount)))
-		printDebug(fmt.Sprintf("End simulating calculus -- Result'e': %s\n", calculus))
+		calculus := fmt.Sprintf("%d", countLetterOccurrence(response[1:], rune(letterToCount)))
+		printDebug(fmt.Sprintf("End couting letter occurrences -- Result for '%c': %s\n", rune(letterToCount), calculus))
+		_, _ = conn.Write([]byte(fmt.Sprintf("%s\n", calculus)))
+
+	} else if
+	// calculate if a number is prime in a given range
+	response[0] == '2' {
+		printDebug("Start prime number calculation\n")
+		parts := strings.Split(response[1:], "@")
+
+		if len(parts) != 3 {
+			printError("Invalid format")
+			_, _ = conn.Write([]byte(fmt.Sprintf("%s\n", "Invalid format")))
+			return
+		}
+
+		potentialPrime, err1 := strconv.Atoi(parts[0])
+		start, err2 := strconv.Atoi(parts[1])
+		end, err3 := strconv.Atoi(parts[2])
+
+		if err1 != nil || err2 != nil || err3 != nil {
+			printError("during conversion")
+			_, _ = conn.Write([]byte(fmt.Sprintf("%s\n", "Conversion error")))
+			return
+		}
+		calculus := fmt.Sprintf("%d", calculatePrimeNumber(potentialPrime, start, end))
+		printDebug(fmt.Sprintf("End prime number calculation -- Result: %s\n", calculus))
 		_, _ = conn.Write([]byte(fmt.Sprintf("%s\n", calculus)))
 
 	}
 }
 
-// simulate client calculus
-// Take a word and returns occurrences of 'a'
-func simulateClientCalculus(word string, letterToCount rune) int {
+// Take a word and returns occurrences of the given letter
+func countLetterOccurrence(word string, letterToCount rune) int {
 	res := 0
 	for _, letter := range word {
 		if letter == letterToCount {
 			res++
 		}
 	}
+	return res
+}
+
+// calculate if a number is prime in a given range
+// returns '-1' if there is no number product of the potentialPrime, else returns the first one found
+//
+//	    IN: potentialPrime: The number to calculate if is prime
+//		IN: start:          Range start
+//		IN: end:            Range end
+func calculatePrimeNumber(potentialPrime, start, end int) int {
+	res := -1
+	i := start
+	for i < end && res == -1 {
+		if potentialPrime%i == 0 {
+			res = i
+		}
+		i++
+	}
+
 	return res
 }
 
