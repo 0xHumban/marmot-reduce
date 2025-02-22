@@ -63,7 +63,8 @@ func handleMenu(marmots Marmots) {
 func showCalculationMenu() {
 	fmt.Println("\n===== Calculation Menu ===== ")
 	fmt.Println("1. Counting letter")
-	fmt.Println("2. Back")
+	fmt.Println("2. Calculate if a number is prime")
+	fmt.Println("3. Back")
 	fmt.Print("Choose an option:\n")
 
 }
@@ -80,6 +81,8 @@ func handleCalculationMenu(marmots Marmots) {
 		case "1":
 			handleCountingLetterMenu(marmots)
 		case "2":
+			handlePrimeNumberCalculationMenu(marmots)
+		case "3":
 			return
 		default:
 			printError("Invalid option, please try again.")

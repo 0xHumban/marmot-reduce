@@ -49,6 +49,7 @@ func treatServerResponse(conn net.Conn, response string) {
 		printDebug("Ping pong request received")
 		message := fmt.Sprintf("'Pong' from @%s\n", conn.LocalAddr().String())
 		_, _ = conn.Write([]byte(message))
+		printDebug("Ping pong response sent")
 
 	} else if
 	// count 'e' in response

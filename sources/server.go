@@ -21,9 +21,6 @@ func openConnection(port string, marmots Marmots) {
 	defer ln.Close()
 
 	printDebug("Server waiting for connections")
-	// DATASET FOR CLIENT
-	// marmots := make([]Marmot, clientNumber)
-	// dataset := generateRandomArray(ClientNumber, 1000000)
 	for marmots.clientsLen() < ClientNumber {
 		conn, err := ln.Accept()
 		if err != nil {

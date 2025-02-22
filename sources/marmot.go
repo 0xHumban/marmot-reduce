@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"math"
 	"net"
 	"sync"
 )
@@ -64,9 +65,8 @@ func (ms Marmots) performAction(fctToExecute func(*Marmot)) {
 
 }
 
-// send ping to all current clients
 func (ms Marmots) Pings() {
-
+	printDebug("Start Pings")
 	ms.performAction((*Marmot).Ping)
 	// if client goroutine has 'end' = false
 	// it means there is an error and we remove it from the list
@@ -76,6 +76,7 @@ func (ms Marmots) Pings() {
 			printDebug("@" + m.conn.RemoteAddr().String() + " has been removed of the clients list")
 		}
 	}
+	printDebug("End Pings")
 }
 
 // returns the number of clients connected
@@ -91,10 +92,15 @@ func (ms Marmots) clientsLen() int {
 
 // sends batch of letters, and asked to clients to count occurence of a letter
 func (ms Marmots) CountingLetters(letter rune, batchSize int) {
+	printDebug("Start counting letters")
 	// Send ping to check if clients always connected
 	ms.Pings()
 
 	clientsNumber := ms.clientsLen()
+	if clientsNumber == 0 {
+		printError("No client connected, retry after connecting clients")
+		return
+	}
 	dataset := generateRandomArray(clientsNumber, batchSize)
 	i := 0
 	for _, m := range ms {
@@ -104,7 +110,52 @@ func (ms Marmots) CountingLetters(letter rune, batchSize int) {
 		}
 	}
 	ms.performAction((*Marmot).CountLetter)
+	ms.WaitEnd()
+	printDebug("End counting letters")
 
+}
+
+// Create a range from 2 to sqrt(potentialNumber)
+// Divide this range by clients number
+// send range and wait for result
+func (ms Marmots) PrimeNumberCalculation(potentialPrime int) {
+	printDebug("Start prime number calculation")
+	// Send ping to check if clients always connected
+	ms.Pings()
+	clientsNumber := ms.clientsLen()
+	if clientsNumber == 0 {
+		printError("No client connected, retry after connecting clients")
+		return
+	}
+	start := 2
+	i := 1
+	sqrtNumber := math.Sqrt(float64(potentialPrime))
+	subRangeLength := int(sqrtNumber / float64(clientsNumber))
+	// for little number: set minimal range to 3
+	if subRangeLength < 4 {
+		subRangeLength = 3
+	}
+	for _, m := range ms {
+		if m != nil {
+			m.data = fmt.Sprintf("%d%d@%d@%d\n", 2, potentialPrime, start, (subRangeLength * i))
+			start += subRangeLength
+		}
+		i++
+	}
+	ms.performAction((*Marmot).PrimeNumber)
+	res := false
+	for _, m := range ms {
+		if m != nil && <-m.end {
+			if m.response != "-1" {
+				fmt.Printf("The number '%d' is not prime, first factor found: '%s' on %s\n", potentialPrime, m.response, m.conn.RemoteAddr())
+				res = true
+			}
+		}
+	}
+	if !res {
+		fmt.Printf("The number '%d' is prime\n", potentialPrime)
+	}
+	printDebug("End prime number calculation")
 }
 
 // show current clients connected
@@ -138,6 +189,41 @@ func (m *Marmot) Close() {
 	if !m.writeData(true) {
 		printDebug("error sending 'exit'")
 	}
+}
+
+// wait for the end of the current action started
+// if end true the client correctly sent the answer
+// if end false then an error occurs during the communication (can be timeout or other)
+// Use: use it after using `performAction` and you're not reading the `<-m.end` after
+// if you miss this, it will bloqued the program
+func (ms Marmots) WaitEnd() {
+	for _, m := range ms {
+		if m != nil {
+			<-m.end
+		}
+	}
+
+}
+
+func (m *Marmot) PrimeNumber() {
+	// wait for start / timeout
+	<-m.start
+	// sending data
+	res := m.writeData(true)
+	if res {
+		res = m.readResponse()
+	} else {
+		printDebug("error sending 'Prime number calculation'")
+		m.end <- false
+		return
+	}
+	if !res {
+		printDebug("error receiving 'Prime number calculation result'")
+		m.end <- false
+		return
+	}
+	m.end <- true
+
 }
 
 func (m *Marmot) CountLetter() {
@@ -194,8 +280,8 @@ func (m *Marmot) readResponse() bool {
 		printError(fmt.Sprintf("Reading client (@"+m.conn.RemoteAddr().String()+") message '%s'", err))
 		return false
 	}
-	printDebug("Message received from @" + m.conn.RemoteAddr().String() + ": " + message)
-	m.response = message
+	printDebug("Message received from @" + m.conn.RemoteAddr().String() + ": " + message[:len(message)-1])
+	m.response = message[:len(message)-1]
 	return true
 }
 
@@ -209,6 +295,6 @@ func (m *Marmot) writeData(show bool) bool {
 		printError(fmt.Sprintf("Sending message to client '(@"+m.conn.RemoteAddr().String()+" %s'", err))
 		return false
 	}
-	printDebugCondition("Message sent: '"+m.data+"'", show)
+	printDebugCondition("Message sent: '"+m.data[:len(m.data)-1]+"'", show)
 	return true
 }
