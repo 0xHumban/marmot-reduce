@@ -174,5 +174,22 @@ I also added my public ssh key to all laptop to gain some time foreach `scp`:
 ### The Home made lab:
 ![Home made lab image](assets/homemadeLab1.jpeg)
 
+## Observations:
+To use all processor capacity, the optimal way is to open X clients by X hearts by server.
+
+Error: if I disconnect the server ethernet cable and i try to Ping clients, the function is `Pings` is blocked
+	-> maybe add a timeout in each `Ping` method
+
 
 ## TODO: Make .env config for all constants
+
+## TODO: Create a power score for all clients
+This score can be used to better distribute tasks, across the system.
+Currently task are evenly distributed with all clients, but it should be better if server can distribute tasks in function of computing power.
+
+Idea: create a function asking for some computing power and each client returns the time it took. 
+
+
+## TODO: Issue if new client connect during calculation
+The Wait() methods used to wait all <-m.end waits infinite time if a new client is connecting.
+-> maybe add attribut like "isWorking" to check if we need to wait this client or not
