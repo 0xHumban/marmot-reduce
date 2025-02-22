@@ -132,11 +132,47 @@ You can test it with this numbers:
 ```
 
 
-### Stop client calculation if product number found
+### TODO: Stop client calculation if product number found
 if a client found a product number, should be good idea to send signals to other clients to stop their calculations.
 
-#### Potential issue
+#### TODO: Potential issue
 Currently we have fault tolerance (network distrub) if a client disconnected during the option menu.
 But if one is crashing during the calculation, we need to report his calculation to another one client.
 
 
+## Create a homemade lab
+Let's create a homemade lab to simulate a datacenter with multiples servers.
+
+I took 2 old laptop and the one im using to work.
+2 old laptops are using lubuntu.
+
+I found an old router and connect 3 laptops to it.
+
+I setup fix ip address:
+- Server `$  sudo ip addr add 192.168.1.25/24 dev enp2s0`
+- Client 1 `$  sudo ip addr add 192.168.1.26/24 dev enp2s0`
+- Client 2 `$  sudo ip addr add 192.168.1.27/24 dev enp2s0`
+
+By using `ping` i can check if all laptops are interconnected.
+
+Now i need to transfer my executable file `./marmotReduce` to launch distant client.
+To do this i will use ssh:
+`$ scp marmotReduce lubuntu@192.168.1.27:/home/lubuntu`
+
+Unfortunately my 2 old laptops did not `ssh server` installed, so i need to install it:
+```
+$ sudo apt update
+$ sudo apt install openssh-server -y
+$ sudo systemctl start ssh
+$ sudo systemctl enable ssh
+```
+
+I also added my public ssh key to all laptop to gain some time foreach `scp`:
+`$ cat ~/.ssh/id_ed25519.pub | ssh lubuntu@192.168.1.27 "mkdir -p ~/.ssh && chmod 700 ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys"
+`
+
+### The Home made lab:
+![Home made lab image](assets/homemadeLab1.jpeg)
+
+
+## TODO: Make .env config for all constants

@@ -6,7 +6,7 @@ import (
 )
 
 const ServerPort = ":8080"
-const ClientNumber = 10
+const ClientNumber = 20
 
 // open a port to allow client to connect
 // In:

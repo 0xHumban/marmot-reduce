@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-const LocalServerIP = "192.168.223.130:8080"
+const LocalServerIP = "192.168.1.25:8080"
 const ServerIP = "127.0.0.1:8080"
 const RetryDelais = 5
 
