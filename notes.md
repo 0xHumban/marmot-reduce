@@ -93,8 +93,25 @@ The client try to connect to server and handle the connection, as long as the se
 
 ## Step 4: Create calculation menu
 Just created basic menu to perform some calculations to clients.
+
 ### Counting letter occurences 
 User can select a letter and it will send to clients batch of random letters and count occurrence of the letter.
 
+### Prime Number calculation
+A given number is a natural number greater than 1 that is not a product of two smallers number.
+
+So with this we can imagine a scenario:
+- we have 3 clients connected
+- we want to know if the number 90000 is prime
+- sqrt(90000) is 300
+- we will create 3 range from 0 to 300 [(0,100), (100,200), (200,300)]
+- each client will check is the number is not a product of a number in the range
+- if client do not found product number, returns -1 else the number
+- foreach client, server checks if no product number found
+
+
+#### Potential issue
+Currently we have fault tolerance (network distrub) if a client disconnected during the option menu.
+But if one is crashing during the calculation, we need to report his calculation to another one client.
 
 
