@@ -264,69 +264,43 @@ func (m *Marmot) PrimeNumber() {
 }
 
 func (m *Marmot) PiCalculation() {
-	// wait for start / timeout
-	<-m.start
-	// sending data
-	res := m.writeData(true)
-	if res {
-		res = m.readResponse()
-	} else {
-		printDebug("error sending 'Pi calculation'")
-		m.end <- false
-		return
-	}
-	if !res {
-		printDebug("error receiving 'Pi result'")
-		m.end <- false
-		return
-	}
-	m.end <- true
-
+	m.SendAndReceiveData("Pi calculation", true)
 }
 
 func (m *Marmot) CountLetter() {
-	// wait for start / timeout
-	<-m.start
-	// sending data
-	res := m.writeData(false)
-	if res {
-		res = m.readResponse()
-	} else {
-		printDebug("error sending 'Ping/Pong'")
-		m.end <- false
-		return
-	}
-	if !res {
-		printDebug("error receiving 'Ping/Pong'")
-		m.end <- false
-		return
-	}
-	m.end <- true
-
+	m.SendAndReceiveData("Count letter", true)
 }
 
 func (m *Marmot) Ping() {
-	// wait for start / timeout
-	<-m.start
+
 	// send 'ping' to client
 	m.data = "0Ping\n"
-	res := m.writeData(false)
+	m.SendAndReceiveData("Ping/Pong", false)
+}
+
+// Can be used with a wrapper
+// Send the data inside the marmot
+// And wait for a marmot response
+func (m *Marmot) SendAndReceiveData(functionName string, showMessageSent bool) {
+
+	// wait for start / timeout
+	<-m.start
+	res := m.writeData(showMessageSent)
 	if res {
 		res = m.readResponse()
 	} else {
-		printDebug("error sending 'Ping/Pong'")
+		printDebug(fmt.Sprintf("error sending '%s'", functionName))
 		m.end <- false
 		return
 	}
 
 	if !res {
-		printDebug("error receiving 'Ping/Pong'")
+		printDebug(fmt.Sprintf("error receiving '%s'", functionName))
 		m.end <- false
 		return
 	}
 
 	m.end <- true
-
 }
 
 // read client response
