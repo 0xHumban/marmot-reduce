@@ -2,11 +2,13 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"math"
 	"net"
 	"strconv"
 	"sync"
+	"time"
 )
 
 // Represents a client
@@ -268,7 +270,7 @@ func (m *Marmot) PiCalculation() {
 }
 
 func (m *Marmot) CountLetter() {
-	m.SendAndReceiveData("Count letter", true)
+	m.SendAndReceiveData("Count letter", false)
 }
 
 func (m *Marmot) Ping() {
@@ -306,27 +308,87 @@ func (m *Marmot) SendAndReceiveData(functionName string, showMessageSent bool) {
 // read client response
 // print in DEBUG mode and store the message in response
 func (m *Marmot) readResponse() bool {
+	fctToExecute := func(ctx context.Context, resultChan chan bool) {
+		reader := bufio.NewReader(m.conn)
+		type result struct {
+			message string
+			err     error
+		}
+		innerChan := make(chan result, 1)
 
-	message, err := bufio.NewReader(m.conn).ReadString('\n')
-	if err != nil {
-		printError(fmt.Sprintf("Reading client (@"+m.conn.RemoteAddr().String()+") message '%s'", err))
-		return false
+		go func() {
+			message, err := reader.ReadString('\n')
+			innerChan <- result{message, err}
+		}()
+
+		// wait for potential timeout
+		select {
+		case res := <-innerChan:
+			if res.err != nil {
+				printError(fmt.Sprintf("Reading client (@"+m.conn.RemoteAddr().String()+") message '%s'", res.err))
+				resultChan <- false
+			} else {
+				printDebug("Message received from @" + m.conn.RemoteAddr().String() + ": " + res.message[:len(res.message)-1])
+				m.response = res.message[:len(res.message)-1]
+				resultChan <- true
+			}
+		case <-ctx.Done():
+			// timeout
+			resultChan <- false
+		}
 	}
-	printDebug("Message received from @" + m.conn.RemoteAddr().String() + ": " + message[:len(message)-1])
-	m.response = message[:len(message)-1]
-	return true
+
+	errorMessage := "Timeout while receiving message from client '@%s'"
+	return m.executeFunctionWithTimeout(TimeoutServerRequestSeconds*time.Second, fctToExecute, errorMessage)
 }
 
 // write the Data store in Marmot to the client
 // print in DEBUG mode
 func (m *Marmot) writeData(show bool) bool {
+	fctToExecute := func(ctx context.Context, resultChan chan bool) {
+		type result struct {
+			n   int
+			err error
+		}
+		innerChan := make(chan result, 1)
 
-	// message, err := bufio.NewReader(m.conn).ReadString('\n')
-	_, err := m.conn.Write([]byte(m.data))
-	if err != nil {
-		printError(fmt.Sprintf("Sending message to client '(@"+m.conn.RemoteAddr().String()+" %s'", err))
+		go func() {
+			n, err := m.conn.Write([]byte(m.data))
+			innerChan <- result{n, err}
+		}()
+
+		select {
+		case res := <-innerChan:
+			if res.err != nil {
+				printError(fmt.Sprintf("Sending message to client '(@"+m.conn.RemoteAddr().String()+" %s'", res.err))
+				resultChan <- false
+			} else {
+				printDebugCondition("Message sent: '"+m.data[:len(m.data)-1]+"'", show)
+				resultChan <- true
+			}
+		case <-ctx.Done():
+			resultChan <- false
+		}
+	}
+
+	errorMessage := "Timeout while sending message to client '@%s'"
+	return m.executeFunctionWithTimeout(TimeoutServerRequestSeconds*time.Second, fctToExecute, errorMessage)
+}
+
+// execute a function with a timeout
+// use it as wrapper
+func (m *Marmot) executeFunctionWithTimeout(timeout time.Duration, fctToExecute func(ctx context.Context, resultChan chan bool), errorMessage string) bool {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	resultChan := make(chan bool, 1)
+	go fctToExecute(ctx, resultChan)
+	// timeout implementation:
+	select {
+	case res := <-resultChan:
+		return res
+	case <-ctx.Done():
+		printError(errorMessage)
 		return false
 	}
-	printDebugCondition("Message sent: '"+m.data[:len(m.data)-1]+"'", show)
-	return true
+
 }
