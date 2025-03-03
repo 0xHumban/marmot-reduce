@@ -220,7 +220,25 @@ For the samples amount: `10000000000`
 
 ## Timeout implementation
 ### Server side
-Implement timeout server side when sending / receiving data. 
+Implement timeout server side when sending / receiving data, using `context`.
+```go
 
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+		go fctToExecute(ctx, resultChan)
+		// timeout implementation:
+		select {
+		case res := <-resultChan:
+			return res
+		case <-ctx.Done():
+			printError(errorMessage)
+			return false
+		}
+```
 ### Current issue: send to client signal to stop calculation
 Send signal to client to stop calculation, or send exit signal to client 
+
+
+
+### Refactor client code to use Marmot type
+Refactor client code with `Marmot` type, to use functions like `executeFunctionWithTimeout`, `readData` ect..

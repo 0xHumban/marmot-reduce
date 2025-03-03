@@ -338,7 +338,7 @@ func (m *Marmot) readResponse() bool {
 		}
 	}
 
-	errorMessage := "Timeout while receiving message from client '@%s'"
+	errorMessage := fmt.Sprintf("Timeout while receiving message from client '@%s'", m.conn.RemoteAddr())
 	return m.executeFunctionWithTimeout(TimeoutServerRequestSeconds*time.Second, fctToExecute, errorMessage)
 }
 
