@@ -7,7 +7,7 @@ import (
 
 const ServerPort = ":8080"
 const ClientNumber = 20
-const TimeoutServerRequestSeconds = 2
+const TimeoutServerRequestSeconds = 200000
 
 // open a port to allow client to connect
 // In:

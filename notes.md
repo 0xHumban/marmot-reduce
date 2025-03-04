@@ -254,3 +254,18 @@ Now we need to send binary file, not only string message.
 So the problem is we can no longer use `ReadString("\n")`.
 
 To address this issue, I will create a `struct` with an `id` and `data` attribut, that will be send between client and server. 
+
+ID: represents the action id
+0: Ping
+1: Close connection (exit)
+2: Counting letter
+3: Calculate if a number is prime
+4: Calculate pi estimation
+
+
+#### Buffer size issue
+Current issue: i need to know the size of the message received to read it with sized buffer.
+
+So before sending `Message` i will put at the head of `byte` array, the size of `Message`, so i can in first read the size to create right sized buffer.
+
+Solution found: before sending `Message`, i will send the length of it

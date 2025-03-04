@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/gob"
 	"fmt"
-	"strings"
 )
 
 // package used to execute self update
@@ -20,6 +19,11 @@ const (
 
 // Struct used to send / receive data between client and server
 // ID: represents the action id
+// 0: Ping
+// 1: Close connection (exit)
+// 2: Counting letter
+// 3: Calculate if a number is prime
+// 4: Calculate pi estimation
 // Type: the of the message, string or binary file
 // Data: data used to process the message
 type Message struct {
@@ -31,39 +35,50 @@ type Message struct {
 func (m Message) String() string {
 	switch m.Type {
 	case BinaryFile:
-		return fmt.Sprintf("The current message is a binary file")
+		return fmt.Sprintf("id: %s The current message is a binary file", m.ID)
 	default:
-		return fmt.Sprintf("%s", string(m.Data))
+		return fmt.Sprintf("id: %s Data: '%s'", m.ID, string(m.Data))
 	}
+}
+
+// create new message struct
+func createMessage(id string, messageType MessageType, data []byte) *Message {
+	return &Message{id, messageType, data}
 }
 
 // Create and returns serialize struct
 // used to avoid a idiot struct init in others function
-func generateNewMessage(id string, messageType MessageType, data []byte) []byte {
+func generateNewMessage(id string, messageType MessageType, data []byte) ([]byte, error) {
 	m := Message{id, messageType, data}
 	return m.encode()
 }
 
 // serializes the struct
-func (m Message) encode() []byte {
+func (m Message) encode() ([]byte, error) {
 	var buffer bytes.Buffer
 	encoder := gob.NewEncoder(&buffer)
 	err := encoder.Encode(m)
 	if err != nil {
 		printError(fmt.Sprintf("During serialisation: %s", err))
-		return nil
+		return nil, err
 	}
-	return buffer.Bytes()
+	return buffer.Bytes(), nil
 }
 
 // deserializes the struct
-func decodeMessage(buffer bytes.Buffer) *Message {
-	decoder := gob.NewDecoder(&buffer)
+func decodeMessage(data []byte) (*Message, error) {
+	buffer := bytes.NewBuffer(data)
+	decoder := gob.NewDecoder(buffer)
 	var message Message
 	err := decoder.Decode(&message)
 	if err != nil {
 		printError(fmt.Sprintf("During deserialisation: %s", err))
-		return nil
+		return nil, err
 	}
-	return &message
+	return &message, err
+}
+
+// / returns if the message is a 'exit' message
+func (m *Message) isExit() bool {
+	return m != nil && m.ID == "1"
 }

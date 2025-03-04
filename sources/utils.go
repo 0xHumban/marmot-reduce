@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 )
 
 const RedColor = "\033[31m"
@@ -18,11 +19,15 @@ func printDebugCondition(text string, show bool) {
 }
 
 func printDebug(text string) {
-	fmt.Println(YellowColor + "DEBUG: " + text + ResetColor)
+	now := time.Now()
+	millis := fmt.Sprintf("%d", now.UnixMilli())
+	fmt.Println(YellowColor + millis + "| DEBUG: " + text + ResetColor)
 }
 
 func printError(text string) {
-	fmt.Println(RedColor + "ERROR: " + text + ResetColor)
+	now := time.Now()
+	millis := fmt.Sprintf("%d", now.UnixMilli())
+	fmt.Println(RedColor + millis + "| ERROR: " + text + ResetColor)
 }
 
 func showMenu() {
