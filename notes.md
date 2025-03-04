@@ -242,3 +242,15 @@ Send signal to client to stop calculation, or send exit signal to client
 
 ### Refactor client code to use Marmot type
 Refactor client code with `Marmot` type, to use functions like `executeFunctionWithTimeout`, `readData` ect..
+
+
+
+## Self-update client
+The goal is to have a client with capablity of self-updating.
+The server can send new client version, client save the new executable, start it, and kill himself.
+
+### New implementation for messages communication
+Now we need to send binary file, not only string message.
+So the problem is we can no longer use `ReadString("\n")`.
+
+To address this issue, I will create a `struct` with an `id` and `data` attribut, that will be send between client and server. 
