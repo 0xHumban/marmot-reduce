@@ -77,14 +77,9 @@ func (ms Marmots) Pings() {
 	// if client goroutine has 'end' = false
 	// it means there is an error and we remove it from the list
 	for i, m := range ms {
-		if m != nil {
-			res := <-m.end
-			fmt.Printf("res: %s\n", res)
-			if m != nil && !res {
-				// if m != nil && !<-m.end {
-				ms[i] = nil
-				printDebug("@" + m.conn.RemoteAddr().String() + " has been removed of the clients list")
-			}
+		if m != nil && !<-m.end {
+			ms[i] = nil
+			printDebug("@" + m.conn.RemoteAddr().String() + " has been removed of the clients list")
 		}
 	}
 	printDebug("End Pings")
@@ -107,6 +102,7 @@ func (ms Marmots) SendUpdateFile() {
 	}
 
 	ms.performAction((*Marmot).SendUpdateFile)
+	ms.WaitEnd()
 	printDebug("End Send update file")
 }
 
