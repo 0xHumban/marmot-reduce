@@ -1,14 +1,19 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"math/rand"
 	"net"
+	"os"
 	"strconv"
 	"strings"
 	"time"
 )
+
+var ClientVersion = 3
+
+var UpdateFilePath = "build/client-"
+var UpdateFilename = fmt.Sprintf("%s%d", UpdateFilePath, ClientVersion)
 
 const LocalServerIP = "192.168.1.25:8080"
 const ServerIP = "127.0.0.1:8080"
@@ -19,24 +24,20 @@ const RetryDelais = 5
 // 'exit': connection closed
 // '1': count 'e' in response
 // returns if the connection has been asked by server
-func handleConnectionClientSide(conn net.Conn) bool {
-	defer conn.Close()
-	response := ""
-	for response != "exit" {
-		response, err := bufio.NewReader(conn).ReadString('\n')
-		if err != nil {
-			fmt.Println("ERROR reading server response", err)
+func (m *Marmot) handleConnectionClientSide() bool {
+	defer m.conn.Close()
+	for !m.response.isExit() {
+		res := m.readResponse()
+		if !res {
+			printDebug("ERROR reading server response")
 			return false
 		}
-		response = response[:len(response)-1]
-
-		// fmt.Printf("Server response: '%s'\n", response)
-		if response == "exit" {
+		if m.response.isExit() {
 			printDebug("EXIT request received")
 			return true
 		}
 
-		treatServerResponse(conn, response)
+		m.treatServerResponse()
 
 	}
 	return true
@@ -44,32 +45,62 @@ func handleConnectionClientSide(conn net.Conn) bool {
 
 // treats the server response
 // choose whats the next step, which function the client have to execute
-func treatServerResponse(conn net.Conn, response string) {
+func (m *Marmot) treatServerResponse() {
+	switch m.response.Type {
+	case BinaryFile:
+		m.treatBinaryFileServerResponse()
+	default:
+		m.treatStringServerResponse()
+	}
+}
+
+func (m *Marmot) treatBinaryFileServerResponse() {
+	// self update client request
+	if m.response.ID == "-1" {
+		printDebug("Self update client request received")
+		res, err := m.SelfUpdateClient()
+		if err != nil {
+			m.data = createMessage("-1", String, []byte(fmt.Sprintf("error during self updating client: %s", err)))
+		} else {
+			m.data = createMessage("-1", String, []byte("Marmot has been updated"))
+		}
+		_ = m.writeData(true)
+		if res {
+			printDebug("File executed")
+			// close the current client
+			os.Exit(0)
+		}
+	}
+}
+
+func (m *Marmot) treatStringServerResponse() {
 	// Ping request
-	if response[0] == '0' {
+	if m.response.ID == "0" {
 		printDebug("Ping pong request received")
-		message := fmt.Sprintf("'Pong' from @%s\n", conn.LocalAddr().String())
-		_, _ = conn.Write([]byte(message))
+		m.data = createMessage("0", String, []byte(fmt.Sprintf("'Pong' from @%s", m.conn.LocalAddr().String())))
+		_ = m.writeData(true)
 		printDebug("Ping pong response sent")
 
 	} else if
 	// count 'e' in response
-	response[0] == '1' {
+	m.response.ID == "2" {
 		printDebug("Start counting letter occurrences\n")
-		letterToCount := response[1]
-		calculus := fmt.Sprintf("%d", countLetterOccurrence(response[1:], rune(letterToCount)))
+		letterToCount := string(m.response.Data)[0]
+		calculus := fmt.Sprintf("%d", countLetterOccurrence(string(m.response.Data)[1:], rune(letterToCount)))
 		printDebug(fmt.Sprintf("End couting letter occurrences -- Result for '%c': %s\n", rune(letterToCount), calculus))
-		_, _ = conn.Write([]byte(fmt.Sprintf("%s\n", calculus)))
+		m.data = createMessage("2", String, []byte(calculus))
+		m.writeData(true)
 
 	} else if
 	// calculate if a number is prime in a given range
-	response[0] == '2' {
+	m.response.ID == "3" {
 		printDebug("Start prime number calculation\n")
-		parts := strings.Split(response[1:], "@")
-
+		parts := strings.Split(string(m.response.Data), "@")
+		println(string(m.response.Data))
 		if len(parts) != 3 {
 			printError("Invalid format")
-			_, _ = conn.Write([]byte(fmt.Sprintf("%s\n", "Invalid format")))
+			m.data = createMessage("3", String, []byte(fmt.Sprintf("%s\n", "Invalid format")))
+			m.writeData(true)
 			return
 		}
 
@@ -79,28 +110,33 @@ func treatServerResponse(conn net.Conn, response string) {
 
 		if err1 != nil || err2 != nil || err3 != nil {
 			printError("during conversion")
-			_, _ = conn.Write([]byte(fmt.Sprintf("%s\n", "Conversion error")))
+			m.data = createMessage("3", String, []byte(fmt.Sprintf("%s\n", "Conversion error")))
+			m.writeData(true)
 			return
 		}
 		calculus := fmt.Sprintf("%d", calculatePrimeNumber(potentialPrime, start, end))
 		printDebug(fmt.Sprintf("End prime number calculation -- Result: %s\n", calculus))
-		_, _ = conn.Write([]byte(fmt.Sprintf("%s\n", calculus)))
+		m.data = createMessage("3", String, []byte(calculus))
+		m.writeData(true)
 
 	} else if
 	// calculate pi estiumation
-	response[0] == '3' {
+	m.response.ID == "4" {
 		printDebug("Start pi estimation\n")
-		samples, err := strconv.Atoi(response[1:])
+		samples, err := strconv.Atoi(string(m.response.Data))
 		if err != nil {
 			printError("during conversion")
-			_, _ = conn.Write([]byte(fmt.Sprintf("%s\n", "Conversion error")))
+			m.data = createMessage("4", String, []byte(fmt.Sprintf("%s\n", "Conversion error")))
+			m.writeData(true)
 			return
 		}
 		calculus := fmt.Sprintf("%d", calculePiChunk(samples))
 		printDebug(fmt.Sprintf("End pi estimation -- Result: %s\n", calculus))
-		_, _ = conn.Write([]byte(fmt.Sprintf("%s\n", calculus)))
+		m.data = createMessage("4", String, []byte(calculus))
+		m.writeData(true)
 
 	}
+
 }
 
 // Take a word and returns occurrences of the given letter
@@ -148,6 +184,10 @@ func calculePiChunk(n int) int {
 	return inside
 }
 
+// saves the file stored in data on local system
+// start it and kill the old one
+// TODO: add verification
+
 func connectToServer(ip string) {
 	connectionClosedProperly := false
 
@@ -159,8 +199,8 @@ func connectToServer(ip string) {
 			// DEBUG
 			printDebug("Local address: " + conn.LocalAddr().String())
 			printDebug("Remote address: " + conn.RemoteAddr().String())
-
-			connectionClosedProperly = handleConnectionClientSide(conn)
+			marmot := NewMarmot(conn)
+			connectionClosedProperly = marmot.handleConnectionClientSide()
 		}
 		if !connectionClosedProperly {
 			time.Sleep(RetryDelais * time.Second)
