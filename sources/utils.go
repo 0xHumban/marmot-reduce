@@ -36,7 +36,8 @@ func showMenu() {
 	fmt.Println("2. Send ping to clients")
 	fmt.Println("3. Close connections")
 	fmt.Println("4. Execute calculations")
-	fmt.Println("5. Exit (will let clients trying to reconnect to server)")
+	fmt.Println("5. Update clients software")
+	fmt.Println("6. Exit (will let clients trying to reconnect to server)")
 	fmt.Print("Choose an option:\n")
 }
 
@@ -58,6 +59,41 @@ func handleMenu(marmots Marmots) {
 		case "4":
 			handleCalculationMenu(marmots)
 		case "5":
+			handleClientUpdateMenu(marmots)
+		case "6":
+			return
+		default:
+			printError("Invalid option, please try again.")
+		}
+	}
+}
+
+func showClientUpdateMenu() {
+	// TODO: add env variable to store the latest client generate
+	fmt.Println("\n===== Update Client Menu ===== ")
+	fmt.Println("It will send to clients, the latest version of the client software")
+	fmt.Printf("The current is: %d\n", ClientVersion)
+	fmt.Println("1. YES")
+	fmt.Println("2. NO (return)")
+}
+
+func handleClientUpdateMenu(marmots Marmots) {
+
+	scanner := bufio.NewScanner(os.Stdin)
+
+	for {
+		showClientUpdateMenu()
+		scanner.Scan()
+		choice := strings.ToLower(strings.TrimSpace(scanner.Text()))
+
+		switch choice {
+		case "1":
+			marmots.SendUpdateFile()
+		case "y":
+			marmots.SendUpdateFile()
+		case "2":
+			return
+		case "n":
 			return
 		default:
 			printError("Invalid option, please try again.")

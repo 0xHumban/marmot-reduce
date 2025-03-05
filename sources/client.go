@@ -9,6 +9,11 @@ import (
 	"time"
 )
 
+var ClientVersion = 4
+
+var UpdateFilePath = "build/client-"
+var UpdateFilename = fmt.Sprintf("%s%d", UpdateFilePath, ClientVersion)
+
 const LocalServerIP = "192.168.1.25:8080"
 const ServerIP = "127.0.0.1:8080"
 const RetryDelais = 5
@@ -41,8 +46,24 @@ func (m *Marmot) handleConnectionClientSide() bool {
 // choose whats the next step, which function the client have to execute
 func (m *Marmot) treatServerResponse() {
 	switch m.response.Type {
+	case BinaryFile:
+		m.treatBinaryFileServerResponse()
 	default:
 		m.treatStringServerResponse()
+	}
+}
+
+func (m *Marmot) treatBinaryFileServerResponse() {
+	// self update client request
+	if m.response.ID == "-1" {
+		printDebug("Self update client request received")
+		err := m.SelfUpdateClient()
+		if err != nil {
+			m.data = createMessage("-1", String, []byte(fmt.Sprintf("error during self updating lcient: %s", err)))
+		} else {
+			m.data = createMessage("-1", String, []byte("Marmot has been updated"))
+		}
+		_ = m.writeData(true)
 	}
 }
 
@@ -156,6 +177,10 @@ func calculePiChunk(n int) int {
 
 	return inside
 }
+
+// saves the file stored in data on local system
+// start it and kill the old one
+// TODO: add verification
 
 func connectToServer(ip string) {
 	connectionClosedProperly := false

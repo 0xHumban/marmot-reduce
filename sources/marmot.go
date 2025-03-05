@@ -7,6 +7,7 @@ import (
 	"io"
 	"math"
 	"net"
+	"os"
 	"strconv"
 	"sync"
 	"time"
@@ -81,6 +82,26 @@ func (ms Marmots) Pings() {
 		}
 	}
 	printDebug("End Pings")
+}
+
+// wil send to all clients the latest update file
+func (ms Marmots) SendUpdateFile() {
+	ms.Pings()
+	printDebug("Start Send update file")
+	// get the local file and store it inside the marmot data
+	data, err := generateUpdateFile()
+	if err != nil {
+		printError(fmt.Sprintf("during send update file, generating update file: %s", err))
+		return
+	}
+	for _, m := range ms {
+		if m != nil {
+			m.data = data
+		}
+	}
+
+	ms.performAction((*Marmot).SendUpdateFile)
+	printDebug("End Send update file")
 }
 
 // returns the number of clients connected
@@ -281,6 +302,28 @@ func (m *Marmot) Ping() {
 	m.SendAndReceiveData("Ping/Pong", false)
 }
 
+// The data inside the marmot have to be initialized before using this function
+func (m *Marmot) SendUpdateFile() {
+	// check if the data is correct
+	if !m.isUpdateFile(true) {
+		printError("send update file to marmot, data inside the marmot is not initialized")
+		return
+	}
+	// send current data to client
+	m.SendAndReceiveData("UpdateFile", true)
+}
+
+// returns if the data inside the Marmot is an Update File
+// checkData: bool: if we have to check inside the data or the response attribut
+func (m Marmot) isUpdateFile(checkData bool) bool {
+	if checkData {
+		return m.data != nil && m.data.ID == "-1" && m.data.Type == BinaryFile
+	} else {
+
+		return m.response != nil && m.response.ID == "-1" && m.response.Type == BinaryFile
+	}
+}
+
 // Can be used with a wrapper
 // Send the data inside the marmot
 // And wait for a marmot response
@@ -427,5 +470,49 @@ func (m *Marmot) executeFunctionWithTimeout(timeout time.Duration, fctToExecute 
 		printError(errorMessage)
 		return false
 	}
+
+}
+
+// will store the file from date inside the Marmot, run it and kill the old one
+func (m *Marmot) SelfUpdateClient() error {
+	// check if the data is correct
+	if !m.isUpdateFile(false) {
+		printError("client side update client, data inside the marmot is not initialized / valid")
+		return fmt.Errorf("client side update client, data inside the marmot is not initialized / valid")
+	}
+	// decode file
+	// message, err := decodeMessage(m.response)
+	// if err != nil {
+	// 	printError(fmt.Sprintf("client side update client, decoding Message: %s", err))
+	// 	return err
+	// }
+	fileData, err := decodeFile(m.response.Data)
+	if err != nil {
+		printError(fmt.Sprintf("client side update client, decodin File: %s", err))
+		return err
+	}
+
+	// check versions
+	printDebug(fmt.Sprintf("Current version: %d vs Version received: %d", ClientVersion, fileData.Version))
+	if fileData.Version <= ClientVersion {
+		printDebug("The client is already using the latest client version")
+		return nil
+	}
+
+	// write file
+	filename := fmt.Sprintf("%s%d", UpdateFilePath, fileData.Version)
+	printDebug(fmt.Sprintf("New client file: '%s'", filename))
+	// file, err := os.Create()
+	// if err != nil {
+	// 	printError(fmt.Sprintf("client side update client, creating file: %s", err))
+	// 	return err
+	// }
+	err = os.WriteFile(filename, fileData.Data, 0755)
+	if err != nil {
+		printError(fmt.Sprintf("client side update client, writing file: %s", err))
+		return err
+	}
+
+	return nil
 
 }

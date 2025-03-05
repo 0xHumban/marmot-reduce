@@ -1,8 +1,12 @@
 package main
 
-import "os"
+import (
+	"fmt"
+	"os"
+)
 
 func main() {
+	printDebug(fmt.Sprintf("Current software version: %d", ClientVersion))
 	argWithoutProg := os.Args[1:]
 	marmots := make([]*Marmot, ClientNumber)
 	if len(argWithoutProg) > 0 {
