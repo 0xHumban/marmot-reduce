@@ -4,12 +4,13 @@ import (
 	"fmt"
 	"math/rand"
 	"net"
+	"os"
 	"strconv"
 	"strings"
 	"time"
 )
 
-var ClientVersion = 4
+var ClientVersion = 2
 
 var UpdateFilePath = "build/client-"
 var UpdateFilename = fmt.Sprintf("%s%d", UpdateFilePath, ClientVersion)
@@ -64,6 +65,8 @@ func (m *Marmot) treatBinaryFileServerResponse() {
 			m.data = createMessage("-1", String, []byte("Marmot has been updated"))
 		}
 		_ = m.writeData(true)
+		// close the current client
+		os.Exit(0)
 	}
 }
 

@@ -8,6 +8,7 @@ import (
 	"math"
 	"net"
 	"os"
+	"os/exec"
 	"strconv"
 	"sync"
 	"time"
@@ -502,17 +503,27 @@ func (m *Marmot) SelfUpdateClient() error {
 	// write file
 	filename := fmt.Sprintf("%s%d", UpdateFilePath, fileData.Version)
 	printDebug(fmt.Sprintf("New client file: '%s'", filename))
-	// file, err := os.Create()
-	// if err != nil {
-	// 	printError(fmt.Sprintf("client side update client, creating file: %s", err))
-	// 	return err
-	// }
+
 	err = os.WriteFile(filename, fileData.Data, 0755)
 	if err != nil {
 		printError(fmt.Sprintf("client side update client, writing file: %s", err))
 		return err
 	}
 
-	return nil
+	return executeFile(filename)
 
+}
+
+// execute the file and exit the current client
+func executeFile(filename string) error {
+	cmd := exec.Command("./" + filename)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	err := cmd.Start()
+
+	if err != nil {
+		printError(fmt.Sprintf("client side update client, executing new file (%s): %s", filename, err))
+		return err
+	}
+	return nil
 }
