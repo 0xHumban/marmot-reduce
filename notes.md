@@ -269,3 +269,10 @@ Current issue: i need to know the size of the message received to read it with s
 So before sending `Message` i will put at the head of `byte` array, the size of `Message`, so i can in first read the size to create right sized buffer.
 
 Solution found: before sending `Message`, i will send the length of it
+
+
+### Implementation
+
+The server can update all clients from menu.
+It sends Struct with current client version and the binary file associated.
+The client receive it, check if his current version is outdated, then he will write the binary file and execute it and kill the old one.

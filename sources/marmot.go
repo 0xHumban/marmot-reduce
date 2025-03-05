@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"strconv"
 	"sync"
+	"syscall"
 	"time"
 )
 
@@ -514,6 +515,7 @@ func executeFile(filename string) (bool, error) {
 	cmd := exec.Command("./" + filename)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	err := cmd.Start()
 
 	if err != nil {

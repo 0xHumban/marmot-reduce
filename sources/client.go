@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-var ClientVersion = 2
+var ClientVersion = 3
 
 var UpdateFilePath = "build/client-"
 var UpdateFilename = fmt.Sprintf("%s%d", UpdateFilePath, ClientVersion)
@@ -60,13 +60,13 @@ func (m *Marmot) treatBinaryFileServerResponse() {
 		printDebug("Self update client request received")
 		res, err := m.SelfUpdateClient()
 		if err != nil {
-			m.data = createMessage("-1", String, []byte(fmt.Sprintf("error during self updating lcient: %s", err)))
+			m.data = createMessage("-1", String, []byte(fmt.Sprintf("error during self updating client: %s", err)))
 		} else {
 			m.data = createMessage("-1", String, []byte("Marmot has been updated"))
 		}
 		_ = m.writeData(true)
-
 		if res {
+			printDebug("File executed")
 			// close the current client
 			os.Exit(0)
 		}
