@@ -58,15 +58,18 @@ func (m *Marmot) treatBinaryFileServerResponse() {
 	// self update client request
 	if m.response.ID == "-1" {
 		printDebug("Self update client request received")
-		err := m.SelfUpdateClient()
+		res, err := m.SelfUpdateClient()
 		if err != nil {
 			m.data = createMessage("-1", String, []byte(fmt.Sprintf("error during self updating lcient: %s", err)))
 		} else {
 			m.data = createMessage("-1", String, []byte("Marmot has been updated"))
 		}
 		_ = m.writeData(true)
-		// close the current client
-		os.Exit(0)
+
+		if res {
+			// close the current client
+			os.Exit(0)
+		}
 	}
 }
 

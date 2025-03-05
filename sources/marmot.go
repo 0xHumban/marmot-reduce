@@ -77,9 +77,14 @@ func (ms Marmots) Pings() {
 	// if client goroutine has 'end' = false
 	// it means there is an error and we remove it from the list
 	for i, m := range ms {
-		if m != nil && !<-m.end {
-			ms[i] = nil
-			printDebug("@" + m.conn.RemoteAddr().String() + " has been removed of the clients list")
+		if m != nil {
+			res := <-m.end
+			fmt.Printf("res: %s\n", res)
+			if m != nil && !res {
+				// if m != nil && !<-m.end {
+				ms[i] = nil
+				printDebug("@" + m.conn.RemoteAddr().String() + " has been removed of the clients list")
+			}
 		}
 	}
 	printDebug("End Pings")
@@ -475,29 +480,23 @@ func (m *Marmot) executeFunctionWithTimeout(timeout time.Duration, fctToExecute 
 }
 
 // will store the file from date inside the Marmot, run it and kill the old one
-func (m *Marmot) SelfUpdateClient() error {
+func (m *Marmot) SelfUpdateClient() (bool, error) {
 	// check if the data is correct
 	if !m.isUpdateFile(false) {
 		printError("client side update client, data inside the marmot is not initialized / valid")
-		return fmt.Errorf("client side update client, data inside the marmot is not initialized / valid")
+		return false, fmt.Errorf("client side update client, data inside the marmot is not initialized / valid")
 	}
-	// decode file
-	// message, err := decodeMessage(m.response)
-	// if err != nil {
-	// 	printError(fmt.Sprintf("client side update client, decoding Message: %s", err))
-	// 	return err
-	// }
 	fileData, err := decodeFile(m.response.Data)
 	if err != nil {
 		printError(fmt.Sprintf("client side update client, decodin File: %s", err))
-		return err
+		return false, err
 	}
 
 	// check versions
 	printDebug(fmt.Sprintf("Current version: %d vs Version received: %d", ClientVersion, fileData.Version))
 	if fileData.Version <= ClientVersion {
 		printDebug("The client is already using the latest client version")
-		return nil
+		return false, nil
 	}
 
 	// write file
@@ -507,7 +506,7 @@ func (m *Marmot) SelfUpdateClient() error {
 	err = os.WriteFile(filename, fileData.Data, 0755)
 	if err != nil {
 		printError(fmt.Sprintf("client side update client, writing file: %s", err))
-		return err
+		return false, err
 	}
 
 	return executeFile(filename)
@@ -515,7 +514,7 @@ func (m *Marmot) SelfUpdateClient() error {
 }
 
 // execute the file and exit the current client
-func executeFile(filename string) error {
+func executeFile(filename string) (bool, error) {
 	cmd := exec.Command("./" + filename)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -523,7 +522,7 @@ func executeFile(filename string) error {
 
 	if err != nil {
 		printError(fmt.Sprintf("client side update client, executing new file (%s): %s", filename, err))
-		return err
+		return false, err
 	}
-	return nil
+	return true, nil
 }
