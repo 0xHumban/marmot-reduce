@@ -222,6 +222,47 @@ func (ms Marmots) PiCalculation(numSamples int) float64 {
 	return pi
 }
 
+// Create a range to spread calculation
+func (ms Marmots) FreeFallCalculation(ff FreeFall) *FreeFall {
+	printDebug("Start Free Fall Simulation")
+	ms.Pings()
+	clientsNumber := ms.clientsLen()
+	if clientsNumber == 0 {
+		printError("No client connected, retry after connecting clients")
+		return nil
+	}
+	// workers repartition
+	samplesPerWorker := int(ff.TotalSteps) / clientsNumber
+	for i, m := range ms {
+		startStep := i * samplesPerWorker
+		endStep := (i + 1) * samplesPerWorker
+		// generate data that will sent to client
+		ff_worker := NewFreeFall(ff.Y0, ff.V0, ff.G, ff.TotalSteps, ff.Tick, float64(startStep), float64(endStep))
+		new_ff, err := ff_worker.encode()
+		if m != nil && err == nil {
+			m.data = createMessage("5", BinaryFile, new_ff)
+		}
+	}
+
+	ms.performAction((*Marmot).FreeFallCalculation)
+	// agregates result
+	res := NewFreeFall(ff.Y0, ff.V0, ff.G, ff.TotalSteps, ff.Tick, 0, ff.TotalSteps)
+	for _, m := range ms {
+		if m != nil && <-m.end {
+			ff_res, err := decodeFreeFall(m.response.Data)
+			if err != nil {
+				printError("during response conversion to Free fall struct")
+			} else {
+				res.Results = append(res.Results, ff_res.Results...)
+			}
+		}
+	}
+
+	printDebug("End Free fall calculation")
+	return res
+
+}
+
 // show current clients connected
 func (ms Marmots) ShowConnected() {
 	ms.Pings()
@@ -292,6 +333,10 @@ func (m *Marmot) PrimeNumber() {
 
 func (m *Marmot) PiCalculation() {
 	m.SendAndReceiveData("Pi calculation", true)
+}
+
+func (m *Marmot) FreeFallCalculation() {
+	m.SendAndReceiveData("Free fall calculation", true)
 }
 
 func (m *Marmot) CountLetter() {

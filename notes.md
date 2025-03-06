@@ -292,7 +292,7 @@ So we will calculate free fall simulation.
 	
 ```
 
-## Implementation
+### Implementation
 
 Created a file with struct and methods for simulating free fall.
 Currently working on a single machine.
@@ -316,3 +316,14 @@ Result:
 We can see it take too many time to generate plot, if you need plot, just use the generate results in a file and open a plot using `gnuplot`.
 
 Let's start the multiclient version.
+
+### Multi client
+The server will send struct with a range
+Client will calculate position inside the range and returns the struct with `FreeFallResults`
+
+
+### Experimentation results
+To be efficient we need to compute a lots of points but it's breaking my RAM limitation (16GO)
+
+The free wall simulation is not a good test pour distributed system.
+-> may be add more compute foreach points, to decrease number of point to compute so gain memory.

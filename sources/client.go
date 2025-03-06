@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-var ClientVersion = 3
+var ClientVersion = 4
 
 var UpdateFilePath = "build/client-"
 var UpdateFilename = fmt.Sprintf("%s%d", UpdateFilePath, ClientVersion)
@@ -69,6 +69,27 @@ func (m *Marmot) treatBinaryFileServerResponse() {
 			printDebug("File executed")
 			// close the current client
 			os.Exit(0)
+		}
+	} else if m.response.ID == "5" {
+		printDebug("Start Free Fall estimation\n")
+		// decode from server
+		ff, err := decodeFreeFall(m.response.Data)
+		if err != nil {
+			printError(fmt.Sprintf("error during decoding free wall data: %s", err))
+			m.data = createMessage("5", BinaryFile, []byte(nil))
+			_ = m.writeData(true)
+			return
+		}
+		// calculate
+		ff.ComputeFreeFallAllPositionsStartToEnd()
+		// encode result for server
+		ff_data, err := ff.encode()
+		if err != nil {
+			printError(fmt.Sprintf("during encoding free wall result: %s", err))
+			m.data = createMessage("5", BinaryFile, []byte(nil))
+		} else {
+			m.data = createMessage("5", BinaryFile, ff_data)
+			_ = m.writeData(true)
 		}
 	}
 }

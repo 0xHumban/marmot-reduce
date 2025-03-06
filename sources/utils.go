@@ -111,7 +111,8 @@ func showCalculationMenu() {
 	fmt.Println("1. Counting letter")
 	fmt.Println("2. Calculate if a number is prime")
 	fmt.Println("3. Calculate Pi estimation")
-	fmt.Println("4. Back")
+	fmt.Println("4. Simulate free fall")
+	fmt.Println("5. Back")
 	fmt.Print("Choose an option:\n")
 
 }
@@ -132,6 +133,8 @@ func handleCalculationMenu(marmots Marmots) {
 		case "3":
 			handlePiEstimationMenu(marmots)
 		case "4":
+			handleSimulateFreeFallMenu(marmots)
+		case "5":
 			return
 		default:
 			printError("Invalid option, please try again.")
