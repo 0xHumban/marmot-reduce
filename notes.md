@@ -276,3 +276,43 @@ Solution found: before sending `Message`, i will send the length of it
 The server can update all clients from menu.
 It sends Struct with current client version and the binary file associated.
 The client receive it, check if his current version is outdated, then he will write the binary file and execute it and kill the old one.
+
+
+## Free fall simulation
+Goal: I want to implement "real use cases" to my little distributed system.
+
+So we will calculate free fall simulation.
+```
+	y = y0 + v0.t - (1/2)g.t²
+
+	y0 = initial height (m)
+	v0 = initial velocity (m/s)
+	g = 9.81 m / s² (gravity)
+	t = time (s)
+	
+```
+
+## Implementation
+
+Created a file with struct and methods for simulating free fall.
+Currently working on a single machine.
+
+Use: 
+```go
+	f := NewFreeFallEarth(100000, 10000, 0.001)
+	f.generateFreeFallData(true, true)
+```
+
+Result: 
+```
+1741250258628| DEBUG: Start generating free fall data
+1741250259147| DEBUG: Time to generate free fall points: 519.332332ms
+1741250259372| DEBUG: Start generating plot
+1741250371886| DEBUG: Graphique generated: 'free_fall_simulation.png' in 1m52.51485s
+1741250371886| DEBUG: Start saving results to file
+1741250392384| DEBUG: File created: 'freefall.dat' in 20.49809s
+```
+
+We can see it take too many time to generate plot, if you need plot, just use the generate results in a file and open a plot using `gnuplot`.
+
+Let's start the multiclient version.
