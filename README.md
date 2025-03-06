@@ -4,6 +4,12 @@
 
 Marmot-Reduce is a simplified distributed system inspired by the MapReduce programming model. It allows you to perform distributed computations across multiple clients connected to a server. This project is designed to be educational and fun, providing a hands-on experience with distributed systems and concurrent programming in Go.
 
+---
+
+## Follow the Adventure
+
+All project notes and updates are available in `notes.md`.
+
 
 ##  Features
 
@@ -12,17 +18,20 @@ Marmot-Reduce is a simplified distributed system inspired by the MapReduce progr
 - **Interactive menu** to manage operations.
 - **Display connected clients** in real time.
 - **Ping clients** to check their availability.
+- **Update Distant client**, sending new version of client
 - **Proper connection management**, preventing resource leaks.
 - **Distributed execution of calculations**:
   - Letter counting in a text.
   - Checking if a number is prime.
   - PI estimation using Monte Carlo algorithm
+  - Free fall simulation
 
 ###  Client
 
 - **Persistent connection**:
   - If the connection is lost, the client automatically attempts to reconnect.
   - It continues until the server sends an exit message.
+  - It can self update himself with new version sent by server
 
 ---
 ## Installation and Execution
@@ -62,11 +71,6 @@ Marmot-Reduce is a simplified distributed system inspired by the MapReduce progr
 5. **If a client disconnects**, it automatically attempts to reconnect.
 6. **The server can properly close all connections** before shutting down.
 
----
-
-## Follow the Adventure
-
-All project notes and updates are available in `notes.md`.
 
 
 ---

@@ -315,6 +315,8 @@ Result:
 
 We can see it take too many time to generate plot, if you need plot, just use the generate results in a file and open a plot using `gnuplot`.
 
+I put 2 images (`free_fall_gnuplot.png` and `free_fall_simulation.png`) inside `assets` folder.
+
 Let's start the multiclient version.
 
 ### Multi client
