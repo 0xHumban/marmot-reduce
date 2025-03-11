@@ -5,13 +5,8 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
-	"math"
 	"net"
-	"os"
-	"os/exec"
-	"strconv"
 	"sync"
-	"syscall"
 	"time"
 )
 
@@ -86,27 +81,6 @@ func (ms Marmots) Pings() {
 	printDebug("End Pings")
 }
 
-// wil send to all clients the latest update file
-func (ms Marmots) SendUpdateFile() {
-	ms.Pings()
-	printDebug("Start Send update file")
-	// get the local file and store it inside the marmot data
-	data, err := generateUpdateFile()
-	if err != nil {
-		printError(fmt.Sprintf("during send update file, generating update file: %s", err))
-		return
-	}
-	for _, m := range ms {
-		if m != nil {
-			m.data = data
-		}
-	}
-
-	ms.performAction((*Marmot).SendUpdateFile)
-	ms.WaitEnd()
-	printDebug("End Send update file")
-}
-
 // returns the number of clients connected
 func (ms Marmots) clientsLen() int {
 	res := 0
@@ -116,151 +90,6 @@ func (ms Marmots) clientsLen() int {
 		}
 	}
 	return res
-}
-
-// sends batch of letters, and asked to clients to count occurence of a letter
-func (ms Marmots) CountingLetters(letter rune, batchSize int) {
-	printDebug("Start counting letters")
-	// Send ping to check if clients always connected
-	ms.Pings()
-
-	clientsNumber := ms.clientsLen()
-	if clientsNumber == 0 {
-		printError("No client connected, retry after connecting clients")
-		return
-	}
-	dataset := generateRandomArray(clientsNumber, batchSize)
-	i := 0
-	for _, m := range ms {
-		if m != nil {
-			m.data = createMessage("2", String, []byte(fmt.Sprintf("%c%s", letter, dataset[i])))
-			i++
-		}
-	}
-	ms.performAction((*Marmot).CountLetter)
-	ms.WaitEnd()
-	printDebug("End counting letters")
-
-}
-
-// Create a range from 2 to sqrt(potentialNumber)
-// Divide this range by clients number
-// send range and wait for result
-func (ms Marmots) PrimeNumberCalculation(potentialPrime int) {
-	printDebug("Start prime number calculation")
-	// Send ping to check if clients always connected
-	ms.Pings()
-	clientsNumber := ms.clientsLen()
-	if clientsNumber == 0 {
-		printError("No client connected, retry after connecting clients")
-		return
-	}
-	start := 2
-	i := 1
-	sqrtNumber := math.Sqrt(float64(potentialPrime))
-	subRangeLength := int(sqrtNumber / float64(clientsNumber))
-	// for little number: set minimal range to 3
-	if subRangeLength < 4 {
-		subRangeLength = 3
-	}
-	for _, m := range ms {
-		if m != nil {
-			m.data = createMessage("3", String, []byte(fmt.Sprintf("%d@%d@%d", potentialPrime, start, (subRangeLength*i))))
-			start += subRangeLength
-		}
-		i++
-	}
-	ms.performAction((*Marmot).PrimeNumber)
-	res := false
-	for _, m := range ms {
-		if m != nil && <-m.end {
-			if string(m.response.Data) != "-1" {
-				fmt.Printf("The number '%d' is not prime, first factor found: '%s' on %s\n", potentialPrime, m.response, m.conn.RemoteAddr())
-				res = true
-			}
-		}
-	}
-	if !res {
-		fmt.Printf("The number '%d' is prime\n", potentialPrime)
-	}
-	printDebug("End prime number calculation")
-}
-
-// Create a range from 0 to given number
-// Divide this range by clients number
-// send range and wait for result and calculate a pi estimation
-func (ms Marmots) PiCalculation(numSamples int) float64 {
-	printDebug("Start PI calculation")
-	// Send ping to check if clients always connected
-	ms.Pings()
-	clientsNumber := ms.clientsLen()
-	if clientsNumber == 0 {
-		printError("No client connected, retry after connecting clients")
-		return -1
-	}
-	samplesPerWorker := numSamples / clientsNumber
-	for _, m := range ms {
-		if m != nil {
-			m.data = createMessage("4", String, []byte(fmt.Sprintf("%d", samplesPerWorker)))
-		}
-	}
-	ms.performAction((*Marmot).PiCalculation)
-	insideTotal := 0
-	for _, m := range ms {
-		if m != nil && <-m.end {
-			numberinside, err := strconv.Atoi(string(m.response.Data))
-			if err != nil {
-				printError("during response conversion to number")
-			} else {
-				insideTotal += numberinside
-			}
-		}
-	}
-	pi := float64(insideTotal) / float64(numSamples) * 4
-	printDebug("End PI calculation")
-	printDebug(fmt.Sprintf("The PI estimation is: ~%.20f , with %d clients, a total sample of %d\n", pi, clientsNumber, numSamples))
-	return pi
-}
-
-// Create a range to spread calculation
-func (ms Marmots) FreeFallCalculation(ff FreeFall) *FreeFall {
-	printDebug("Start Free Fall Simulation")
-	ms.Pings()
-	clientsNumber := ms.clientsLen()
-	if clientsNumber == 0 {
-		printError("No client connected, retry after connecting clients")
-		return nil
-	}
-	// workers repartition
-	samplesPerWorker := int(ff.TotalSteps) / clientsNumber
-	for i, m := range ms {
-		startStep := i * samplesPerWorker
-		endStep := (i + 1) * samplesPerWorker
-		// generate data that will sent to client
-		ff_worker := NewFreeFall(ff.Y0, ff.V0, ff.G, ff.TotalSteps, ff.Tick, float64(startStep), float64(endStep))
-		new_ff, err := ff_worker.encode()
-		if m != nil && err == nil {
-			m.data = createMessage("5", BinaryFile, new_ff)
-		}
-	}
-
-	ms.performAction((*Marmot).FreeFallCalculation)
-	// agregates result
-	res := NewFreeFall(ff.Y0, ff.V0, ff.G, ff.TotalSteps, ff.Tick, 0, ff.TotalSteps)
-	for _, m := range ms {
-		if m != nil && <-m.end {
-			ff_res, err := decodeFreeFall(m.response.Data)
-			if err != nil {
-				printError("during response conversion to Free fall struct")
-			} else {
-				res.Results = append(res.Results, ff_res.Results...)
-			}
-		}
-	}
-
-	printDebug("End Free fall calculation")
-	return res
-
 }
 
 // show current clients connected
@@ -331,45 +160,11 @@ func (m *Marmot) PrimeNumber() {
 
 }
 
-func (m *Marmot) PiCalculation() {
-	m.SendAndReceiveData("Pi calculation", true)
-}
-
-func (m *Marmot) FreeFallCalculation() {
-	m.SendAndReceiveData("Free fall calculation", true)
-}
-
-func (m *Marmot) CountLetter() {
-	m.SendAndReceiveData("Count letter", false)
-}
-
 func (m *Marmot) Ping() {
 
 	// send 'ping' to client
 	m.data = createMessage("0", String, []byte("Ping"))
 	m.SendAndReceiveData("Ping/Pong", false)
-}
-
-// The data inside the marmot have to be initialized before using this function
-func (m *Marmot) SendUpdateFile() {
-	// check if the data is correct
-	if !m.isUpdateFile(true) {
-		printError("send update file to marmot, data inside the marmot is not initialized")
-		return
-	}
-	// send current data to client
-	m.SendAndReceiveData("UpdateFile", true)
-}
-
-// returns if the data inside the Marmot is an Update File
-// checkData: bool: if we have to check inside the data or the response attribut
-func (m Marmot) isUpdateFile(checkData bool) bool {
-	if checkData {
-		return m.data != nil && m.data.ID == "-1" && m.data.Type == BinaryFile
-	} else {
-
-		return m.response != nil && m.response.ID == "-1" && m.response.Type == BinaryFile
-	}
 }
 
 // Can be used with a wrapper
@@ -519,53 +314,4 @@ func (m *Marmot) executeFunctionWithTimeout(timeout time.Duration, fctToExecute 
 		return false
 	}
 
-}
-
-// will store the file from date inside the Marmot, run it and kill the old one
-func (m *Marmot) SelfUpdateClient() (bool, error) {
-	// check if the data is correct
-	if !m.isUpdateFile(false) {
-		printError("client side update client, data inside the marmot is not initialized / valid")
-		return false, fmt.Errorf("client side update client, data inside the marmot is not initialized / valid")
-	}
-	fileData, err := decodeFile(m.response.Data)
-	if err != nil {
-		printError(fmt.Sprintf("client side update client, decodin File: %s", err))
-		return false, err
-	}
-
-	// check versions
-	printDebug(fmt.Sprintf("Current version: %d vs Version received: %d", ClientVersion, fileData.Version))
-	if fileData.Version <= ClientVersion {
-		printDebug("The client is already using the latest client version")
-		return false, nil
-	}
-
-	// write file
-	filename := fmt.Sprintf("%s%d", UpdateFilePath, fileData.Version)
-	printDebug(fmt.Sprintf("New client file: '%s'", filename))
-
-	err = os.WriteFile(filename, fileData.Data, 0755)
-	if err != nil {
-		printError(fmt.Sprintf("client side update client, writing file: %s", err))
-		return false, err
-	}
-
-	return executeFile(filename)
-
-}
-
-// execute the file and exit the current client
-func executeFile(filename string) (bool, error) {
-	cmd := exec.Command("./" + filename)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
-	err := cmd.Start()
-
-	if err != nil {
-		printError(fmt.Sprintf("client side update client, executing new file (%s): %s", filename, err))
-		return false, err
-	}
-	return true, nil
 }

@@ -10,6 +10,35 @@ import (
 
 const CoutingLetterBatchSize = 10000000
 
+func (m *Marmot) CountLetter() {
+	m.SendAndReceiveData("Count letter", false)
+}
+
+// sends batch of letters, and asked to clients to count occurence of a letter
+func (ms Marmots) CountingLetters(letter rune, batchSize int) {
+	printDebug("Start counting letters")
+	// Send ping to check if clients always connected
+	ms.Pings()
+
+	clientsNumber := ms.clientsLen()
+	if clientsNumber == 0 {
+		printError("No client connected, retry after connecting clients")
+		return
+	}
+	dataset := generateRandomArray(clientsNumber, batchSize)
+	i := 0
+	for _, m := range ms {
+		if m != nil {
+			m.data = createMessage("2", String, []byte(fmt.Sprintf("%c%s", letter, dataset[i])))
+			i++
+		}
+	}
+	ms.performAction((*Marmot).CountLetter)
+	ms.WaitEnd()
+	printDebug("End counting letters")
+
+}
+
 func generateRandomArray(arraylength, stringLength int) []string {
 	res := make([]string, arraylength)
 	for i := range res {

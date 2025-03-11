@@ -1,132 +1,102 @@
 package main
 
 import (
-	"bytes"
-	"encoding/gob"
 	"fmt"
 	"os"
+	"os/exec"
+	"syscall"
 )
 
 // package used to execute self update
 
-// enum used to identify message type
-// is it string or binary file for example
-type MessageType int
+// wil send to all clients the latest update file
+func (ms Marmots) SendUpdateFile() {
+	ms.Pings()
+	printDebug("Start Send update file")
+	// get the local file and store it inside the marmot data
+	data, err := generateUpdateFile()
+	if err != nil {
+		printError(fmt.Sprintf("during send update file, generating update file: %s", err))
+		return
+	}
+	for _, m := range ms {
+		if m != nil {
+			m.data = data
+		}
+	}
 
-const (
-	String MessageType = iota
-	BinaryFile
-)
-
-// Struct used to send / receive data between client and server
-// ID: represents the action id
-// -1: Update client with new file
-// 0: Ping
-// 1: Close connection (exit)
-// 2: Counting letter
-// 3: Calculate if a number is prime
-// 4: Calculate pi estimation
-// Type: the of the message, string or binary file
-// Data: data used to process the message
-type Message struct {
-	ID   string
-	Type MessageType
-	Data []byte
+	ms.performAction((*Marmot).SendUpdateFile)
+	ms.WaitEnd()
+	printDebug("End Send update file")
 }
 
-// used to send file across the network
-// with a version number and the file himself
-type File struct {
-	Version int
-	Data    []byte
+// The data inside the marmot have to be initialized before using this function
+func (m *Marmot) SendUpdateFile() {
+	// check if the data is correct
+	if !m.isUpdateFile(true) {
+		printError("send update file to marmot, data inside the marmot is not initialized")
+		return
+	}
+	// send current data to client
+	m.SendAndReceiveData("UpdateFile", true)
 }
 
-func (m Message) String() string {
-	switch m.Type {
-	case BinaryFile:
-		return fmt.Sprintf("id: %s The current message is a binary file", m.ID)
-	default:
-		return fmt.Sprintf("id: %s Data: '%s'", m.ID, string(m.Data))
+// returns if the data inside the Marmot is an Update File
+// checkData: bool: if we have to check inside the data or the response attribut
+func (m Marmot) isUpdateFile(checkData bool) bool {
+	if checkData {
+		return m.data != nil && m.data.ID == "-1" && m.data.Type == BinaryFile
+	} else {
+
+		return m.response != nil && m.response.ID == "-1" && m.response.Type == BinaryFile
 	}
 }
 
-// create new message struct
-func createMessage(id string, messageType MessageType, data []byte) *Message {
-	return &Message{id, messageType, data}
+// will store the file from date inside the Marmot, run it and kill the old one
+func (m *Marmot) SelfUpdateClient() (bool, error) {
+	// check if the data is correct
+	if !m.isUpdateFile(false) {
+		printError("client side update client, data inside the marmot is not initialized / valid")
+		return false, fmt.Errorf("client side update client, data inside the marmot is not initialized / valid")
+	}
+	fileData, err := decodeFile(m.response.Data)
+	if err != nil {
+		printError(fmt.Sprintf("client side update client, decodin File: %s", err))
+		return false, err
+	}
+
+	// check versions
+	printDebug(fmt.Sprintf("Current version: %d vs Version received: %d", ClientVersion, fileData.Version))
+	if fileData.Version <= ClientVersion {
+		printDebug("The client is already using the latest client version")
+		return false, nil
+	}
+
+	// write file
+	filename := fmt.Sprintf("%s%d", UpdateFilePath, fileData.Version)
+	printDebug(fmt.Sprintf("New client file: '%s'", filename))
+
+	err = os.WriteFile(filename, fileData.Data, 0755)
+	if err != nil {
+		printError(fmt.Sprintf("client side update client, writing file: %s", err))
+		return false, err
+	}
+
+	return executeFile(filename)
+
 }
 
-func createFile(version int, data []byte) *File {
-	return &File{version, data}
-}
-
-// will take client version and file in local and generate a struct for the file
-func generateUpdateFile() (*Message, error) {
-	printDebug("Update filename: " + UpdateFilename)
-	data, err := os.ReadFile(UpdateFilename)
+// execute the file and exit the current client
+func executeFile(filename string) (bool, error) {
+	cmd := exec.Command("./" + filename)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	err := cmd.Start()
 
 	if err != nil {
-		printError(fmt.Sprintf("During update file generation: %s", err))
-		return nil, err
+		printError(fmt.Sprintf("client side update client, executing new file (%s): %s", filename, err))
+		return false, err
 	}
-	file, err := createFile(ClientVersion, data).encode()
-	if err != nil {
-		printError(fmt.Sprintf("During update file generation: %s", err))
-		return nil, err
-	}
-	return createMessage("-1", BinaryFile, file), nil
-}
-
-// Create and returns serialize struct
-// used to avoid a idiot struct init in others function
-func generateNewMessage(id string, messageType MessageType, data []byte) ([]byte, error) {
-	m := Message{id, messageType, data}
-	return m.encode()
-}
-
-func (m Message) encode() ([]byte, error) {
-	return encode(m)
-}
-
-func (f File) encode() ([]byte, error) {
-	return encode(f)
-}
-
-// serializes generic struct
-func encode[T any](m T) ([]byte, error) {
-	var buffer bytes.Buffer
-	encoder := gob.NewEncoder(&buffer)
-	err := encoder.Encode(m)
-	if err != nil {
-		printError(fmt.Sprintf("During serialisation: %s", err))
-		return nil, err
-	}
-	return buffer.Bytes(), nil
-
-}
-
-// deserializes the struct
-func decodeMessage(data []byte) (*Message, error) {
-	return decode[Message](data)
-}
-
-func decodeFile(data []byte) (*File, error) {
-	return decode[File](data)
-}
-
-// generic method used to decode struct
-func decode[T any](data []byte) (*T, error) {
-	buffer := bytes.NewBuffer(data)
-	decoder := gob.NewDecoder(buffer)
-	var obj T
-	err := decoder.Decode(&obj)
-	if err != nil {
-		printError(fmt.Sprintf("During deserialisation: %s", err))
-		return nil, err
-	}
-	return &obj, err
-}
-
-// / returns if the message is a 'exit' message
-func (m *Message) isExit() bool {
-	return m != nil && m.ID == "1"
+	return true, nil
 }
