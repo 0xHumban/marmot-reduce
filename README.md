@@ -6,6 +6,12 @@ Marmot-Reduce is a simplified distributed system inspired by the MapReduce progr
 
 ---
 
+## Diagram of the distributed system developed
+
+![Diagram of the distributed system developed](assets/Marmot-reduce-scheme.png)
+
+
+
 ## Follow the Adventure
 
 All project notes and updates are available in `notes.md`.
